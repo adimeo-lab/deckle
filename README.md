@@ -1,2 +1,3 @@
-# deckle
-Adimeo Deckle - Automation tool for managing containerized environments
+# Adimeo "Deckle"
+
+Automation tool for managing containerized environments

@@ -1,0 +1,8 @@
+# Docker data
+volumes/*
+
+# Local config files
+.env
+containers/apache/settings/settings.local.php
+
+/mutagen.yml.lock

@@ -1,0 +1,19 @@
+sync:
+  defaults:
+    mode: "two-way-resolved"
+    symlink:
+      mode: "posix-raw"
+    ignore:
+      vcs: true
+      paths:
+        - "docker"
+
+  bibgir:
+    alpha: ".."
+    beta: "docker://bibgir_apache_1/var/www/html"
+    configurationBeta:
+      permissions:
+        defaultOwner: "www-data"
+        defaultGroup: "www-data"
+        defaultFileMode: 644
+        defaultDirectoryMode: 755

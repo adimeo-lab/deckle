@@ -4,7 +4,6 @@
 namespace Adimeo\Deckle\Service\Config;
 
 
-use Adimeo\Deckle\Config\DeckleConfig;
 use Adimeo\Deckle\Config\Loader\FileLoader;
 use Adimeo\Deckle\Config\Parser\YamlParser;
 use Adimeo\Deckle\Config\Processor\ProcessorInterface;
@@ -34,9 +33,28 @@ class ConfigManager
 
     public function load($configFilePath)
     {
-        $configSource = $this->loader->load($configFilePath);
+        $rawConfigs = $this->loader->load($configFilePath);
 
-        return new DeckleConfig($this->parser->parse($configSource));
+        return $this->parser->parse($rawConfigs);
     }
 
+    public function merge(array $main, array $local)
+    {
+        $merged = $main;
+        foreach ($local as $item => $value) {
+            if (!isset($main[$item])) {
+                $merged[$item] = $value;
+            } else {
+
+                if (is_scalar($value)) {
+                    $merged[$item] = $value;
+                    echo 'Importing ' . $item . ' in config ' . PHP_EOL;
+                } else {
+                    $merged[$item] = $this->merge((array)$main[$item], (array)$value);
+                }
+            }
+        }
+
+        return $merged;
+    }
 }

@@ -1,0 +1,16 @@
+project:
+  id: test
+  description: test project
+  extra_dev_configuration:
+    - deckle.local.yml
+  extra_prod_configuration:
+    - /opt/deckle/conf<project.id>/deckle.yml
+    - deckle.local.yml
+
+params:
+    google-api-key: 1234
+    api-key: conf<params.google-api-key>
+
+env:
+  OTHER_VAR: '/opt/why/not'
+  API_KEY: conf<params.api-key>

@@ -3,16 +3,15 @@
 
 namespace Adimeo\Deckle\Config\Parser;
 
+use Adimeo\Deckle\Exception\Config\ConfigException;
 use Symfony\Component\Yaml\Yaml;
 
 class YamlParser implements ConfigParserInterface
 {
-    public function parse(string $config): array
+    public function parse(string $configFile): array
     {
-
-        $config = Yaml::parse($config);
-
-        return $config;
+        return Yaml::parse($configFile);
     }
+
 
 }

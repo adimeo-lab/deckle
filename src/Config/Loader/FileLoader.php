@@ -8,8 +8,9 @@ use Adimeo\Deckle\Exception\Config\ConfigException;
 
 class FileLoader implements ConfigLoaderInterface
 {
-    public function load($config): string
+    public function load(string $config): string
     {
+
         if(!file_exists($config)) {
             throw new ConfigException(['Config file "%s" was not found', $config]);
         }
@@ -19,6 +20,7 @@ class FileLoader implements ConfigLoaderInterface
         }
 
         return file_get_contents($config);
+
     }
 
 }

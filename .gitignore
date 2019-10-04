@@ -41,7 +41,7 @@
 /app/phpunit.xml
 /phpunit.xml
 
-# Build data
+# Build samples
 /build/
 
 # Composer PHAR
@@ -56,3 +56,7 @@
 /deckle.phar
 
 .idea
+deckle.local.yml
+./deckle.yml
+resources/cache/
+var/log/

@@ -4,7 +4,7 @@
 namespace Adimeo\Deckle\Config;
 
 
-class DeckleConfig
+class DeckleConfig implements \ArrayAccess
 {
 
     /** @var array  */
@@ -24,8 +24,28 @@ class DeckleConfig
 
     public function hydrate(array $config)
     {
-        array_walk_recursive($config, function($value, $key) { echo $key . ' => ' . $value . PHP_EOL; });
-exit;
         $this->config = $config;
     }
+
+    public function offsetExists($offset)
+    {
+        return isset($this->config[$offset]);
+    }
+
+    public function offsetGet($offset)
+    {
+        return $this->config[$offset];
+    }
+
+    public function offsetSet($offset, $value)
+    {
+        $this->config[$offset] = $value;
+    }
+
+    public function offsetUnset($offset)
+    {
+        unset($this->config[$offset]);
+    }
+
+
 }

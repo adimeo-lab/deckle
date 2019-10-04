@@ -6,5 +6,5 @@ namespace Adimeo\Deckle\Config\Loader;
 
 interface ConfigLoaderInterface
 {
-    public function load($config) : string;
+    public function load(string $config) : string;
 }

@@ -141,7 +141,9 @@ trait TemplatesHelper
         foreach($providers as $provider) {
             $path = 'cache/' . $this->sanitizeProviderName($provider) . '/' . $template;
             if(is_dir($path)) {
-                return realpath($path);
+                $realpath = realpath($path);
+                chdir($cwd);
+                return $realpath;
             }
         }
 

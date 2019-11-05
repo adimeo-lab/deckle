@@ -9,7 +9,7 @@
     }
   ],
   "files": ["deckle"],
-  "main": "deckle",
+  "main": "deckle.sh",
   "stub": true,
   "output": "deckle.phar"
 }

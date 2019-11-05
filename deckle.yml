@@ -1,0 +1,9 @@
+project:
+  id: ask<Project id>
+  template: adimeo/symfony4
+  extra_dev_configuration:
+    - deckle.local.yml
+params:
+  some: param
+env:
+

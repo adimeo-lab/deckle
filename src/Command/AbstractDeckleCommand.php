@@ -4,6 +4,8 @@
 namespace Adimeo\Deckle\Command;
 
 
+use Adimeo\Deckle\Command\Deckle\Bootstrap;
+use Adimeo\Deckle\Command\Deckle\Install;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\Config\ConfigManager;
 use Adimeo\Deckle\Service\Placeholder\PlaceholderInterface;
@@ -99,18 +101,23 @@ abstract class AbstractDeckleCommand extends Command
      */
     public function loadProjectConfig()
     {
-        if ($this->output->isVerbose()) {
-            $this > $this->output->writeln("Importing configuration file <comment>deckle.yml</comment>");
+        if(!is_dir('./deckle')) {
+          if(($this instanceof Bootstrap) || $this instanceof Install) {
+              return;
+          }
         }
-        $conf = $this->configManager->load('deckle.yml');
+        if ($this->output->isVerbose()) {
+            $this > $this->output->writeln("Importing configuration file <comment>deckle/deckle.yml</comment>");
+        }
+        $conf = $this->configManager->load('deckle/deckle.yml');
 
         if (isset($conf['project']['extra_' . $this->getEnv() . '_configuration'])) {
             $extraConfigurationFiles = $conf['project']['extra_' . $this->getEnv() . '_configuration'];
             foreach ($extraConfigurationFiles as $file) {
                 if ($this->output->isVerbose()) {
-                    $this > $this->output->writeln("\tImporting extra configuration file <comment>" . $file . "</comment>");
+                    $this > $this->output->writeln("\tImporting extra configuration file <comment>deckle/" . $file . "</comment>");
                 }
-                $extra = $this->configManager->load($file);
+                $extra = $this->configManager->load('deckle/' . $file);
                 $conf = $this->configManager->merge($conf, $extra);
             }
         }

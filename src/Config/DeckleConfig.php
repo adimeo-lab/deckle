@@ -8,7 +8,14 @@ class DeckleConfig implements \ArrayAccess
 {
 
     /** @var array  */
-    protected $config = [];
+    protected $config = [
+        'project' => ['name' => null, 'type' => null],
+        'docker' => ['host' => null, 'path' => null],
+        'app' => ['container' => null, 'path' => null, 'port' => null],
+        'db' => ['container' => null, 'port' => null, 'database' => null, 'user' => null, 'passwd' => null],
+        'reference' => ['host' => null, 'user' => null, 'path' => null, 'db' => ['host' => null, 'database' => null, 'user' => null, 'passwd' => null]],
+        'extra' => []
+    ];
 
     /** @var array  */
     protected $processors = [];
@@ -24,7 +31,7 @@ class DeckleConfig implements \ArrayAccess
 
     public function hydrate(array $config)
     {
-        $this->config = $config;
+        $this->config = array_merge_recursive($this->config, $config);
     }
 
     public function offsetExists($offset)

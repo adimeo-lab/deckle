@@ -24,6 +24,7 @@ class Bootstrap extends AbstractDeckleCommand
 
     protected function configure()
     {
+
         $this->setName('bootstrap')
             ->setDescription('Import Deckle template in your development environment')
             ->addOption('reset', null, InputOption::VALUE_NONE, 'Clean any previous deckle project present in current directory. <info>Warning, you may loose data!</info>')

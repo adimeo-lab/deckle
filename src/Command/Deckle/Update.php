@@ -25,6 +25,7 @@ class Update extends AbstractDeckleCommand
 
     protected function configure()
     {
+        parent::configure();
         $this->setName('update')
             ->setDescription('Update local templates copy');
     }

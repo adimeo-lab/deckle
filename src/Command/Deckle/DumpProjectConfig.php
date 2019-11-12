@@ -19,7 +19,8 @@ class DumpProjectConfig extends AbstractDeckleCommand
      */
     protected function configure()
     {
-        $this->setName("project:config:dump")
+        parent::configure();
+        $this->setName("config:dump")
             ->setDescription("Dump project configuration")
             ->setAliases(['dump']);
     }

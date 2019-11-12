@@ -17,6 +17,7 @@ class TemplatesList extends AbstractDeckleCommand
 
     protected function configure()
     {
+        parent::configure();
         $this->setName("templates:list")
             ->setAliases(['rl'])
             ->setDescription("List available recipes");

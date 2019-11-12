@@ -3,6 +3,7 @@
 namespace Adimeo\Deckle;
 
 
+use Adimeo\Deckle\Command\Drupal8\Drupal8CommandInterface;
 use Adimeo\Deckle\DependencyInjection\CompilerPass\CommandsRegistration;
 use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
@@ -23,6 +24,7 @@ class AppKernel extends Kernel
     protected function build(ContainerBuilder $containerBuilder): void
     {
         $containerBuilder->addCompilerPass(new CommandsRegistration());
+        //$containerBuilder->registerForAutoconfiguration(DeckleDrupal8CommandInterface::class)->addTag('deckle.drupal8');
     }
 
 }

@@ -48,7 +48,6 @@ class ConfigManager
 
                 if (is_scalar($value)) {
                     $merged[$item] = $value;
-                    echo 'Importing ' . $item . ' in config ' . PHP_EOL;
                 } else {
                     $merged[$item] = $this->merge((array)$main[$item], (array)$value);
                 }

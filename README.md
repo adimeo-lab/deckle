@@ -111,7 +111,52 @@ NOTE : Si vous tentez d'utilisez Deckle sur une autre plateforme que macOs (Wind
 
 #### Authentification SSH
 
-#### Déclation de l'hôte Docker
+Le plus confortable pour se connecter  en SSH sera le recours à une clé SSH, et une configuration de votre client.
+
+Le préalable est donc de disposer d'une paire de clés RSA associée à son compte utilisateur macOs. Idéalement, cette même 
+clé devrait être associée à votre compte GitHub mais ce n'est pas indispensable.
+
+La première étape consiste donc à copier votre clé publique sur la VM :
+
+```shell script
+ssh-copy-id ubuntu@ubuntu-dev-server
+```
+
+Ensuite, il faut indiquer à SSH que l'on souhaite propager sa clé privée dans les sessions distantes (ce qui permet de ne PAS 
+la copier physiquement dans la VM) en éditant votre fichier de config SSH :
+
+
+```shell script
+vi ~/.ssh/config
+```
+
+Et en y ajoutant la section suivante :
+
+```apacheconfig
+Host ubuntu-dev-server
+        Hostname ubuntu-dev-server
+        User ubuntu
+        UseKeychain yes
+        AddKeysToAgent yes
+        ServerAliveInterval 60
+        ForwardAgent Yes
+
+```
+
+#### Déclaration de l'hôte Docker
+
+Une autre configuration importante est celle de docker. En effet, Docker va tourner dans la VM Ubuntu, mais 
+un certain nombre de commandes deckle vont dialoguer avec le daemon Docker directement depuis macOs.
+
+Pour cela, il faut indiquer au client Docker l'adresse de l'hôte Docker :
+
+```
+# pour bash
+echo "export DOCKER_HOST=ubuntu-dev-server:4342" >> ~/.bashrc
+
+# pour zsh
+echo "export DOCKER_HOST=ubuntu-dev-server:4342" >> ~/.zshrc
+```
 
 
 ## Travailler avec Deckle
@@ -173,3 +218,29 @@ Pour accéder rapidement aux images de l'environnement en shell, exécutez :
 ```shell script
 deckle sh
 ```
+
+
+# Autres services
+
+## Portainer
+
+http://portainer.docker.local
+admin/docker-admin
+
+## Traefik
+http://traefik.docker.local
+
+## phpMyAdmin
+
+http://pma.docker.local
+
+
+# Problèmes fréquents
+
+## Certaines commandes impliquant une connexion SSH depuis la VM échouent avec le message 'Host key verification failed.
+'
+
+Le message `Host key verification failed.` signifie en général que la machine distante n'est pas connue de la VM (i.e. 
+que son identité est absente du fichier `~/.ssh/known_hosts`). 
+
+Pour remédier à ce problème, il faut faire une première connexion depuis la VM elle-même sur la machine concernée.

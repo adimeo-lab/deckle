@@ -22,13 +22,11 @@ class Drush extends AbstractDrupal8Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
 
-        if($output->isVerbose()) {
-            $output->writeln('Executing <comment>drush</comment> on remote container');
+        $output->writeln('Executing <comment>drush</comment> on remote container');
 
-            $path = $this->projectConfig['app']['path'];
+        $path = $this->projectConfig['app']['path'];
 
-            $this->runCommandInContainer('vendor/bin/drush', $this->input->getArgument('args'), $path);
-        }
+        $this->dockerExec('vendor/bin/drush', $this->input->getArgument('args'), $path);
     }
 
 

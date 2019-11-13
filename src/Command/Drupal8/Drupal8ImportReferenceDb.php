@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Command\Drupal8;
 
 
+use mysql_xdevapi\Exception;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -19,14 +20,16 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
     {
         try {
 
-
-
-            // dump
+            // fetch config
             $config = $this->projectConfig;
+
+            // complete with settings.local.php from reference if needed
+            $this->fillConfigFromReferenceSettings($config);
+
             $command = sprintf('mysqldump -h%s -u%s -p%s %s > %s-dump.sql',
                 $config['reference']['db']['host'],
-                $config['reference']['db']['user'],
-                $config['reference']['db']['passwd'],
+                $config['reference']['db']['username'],
+                $config['reference']['db']['password'],
                 $config['reference']['db']['database'],
                 $config['reference']['db']['database']
             );
@@ -36,7 +39,8 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
             $command = sprintf('gzip %s-dump.sql',
                 $config['reference']['db']['database']
             );
-            $this->ssh($command, '~', $this->projectConfig['reference']['host'], $this->projectConfig['reference']['user']);
+            $this->ssh($command, '~', $this->projectConfig['reference']['host'],
+                $this->projectConfig['reference']['user']);
 
             // fetch dump in vm
             $command = sprintf('scp %s@%s:%s-dump.sql.gz %s',
@@ -54,8 +58,8 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
             // import in appli
             $command = sprintf('mysql -h%s -u%s -p%s -e "CREATE SCHEMA IF NOT EXISTS %s;"',
                 '127.0.0.1',
-                $config['db']['user'],
-                $config['db']['passwd'],
+                $config['db']['username'],
+                $config['db']['password'],
                 $config['db']['database'],
                 $config['db']['database']
             );
@@ -63,8 +67,8 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
 
             $command = sprintf('mysql -h%s -u%s -p%s %s < %s-dump.sql',
                 '127.0.0.1',
-                $config['db']['user'],
-                $config['db']['passwd'],
+                $config['db']['username'],
+                $config['db']['password'],
                 $config['db']['database'],
                 $config['db']['database']
             );
@@ -86,5 +90,37 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
         }
     }
 
+    protected function fillConfigFromReferenceSettings(array &$config)
+    {
 
+        $host = $config['reference']['host'];
+        $user = $config['reference']['user'];
+        $source = $config['reference']['path'] . '/web/sites/default/settings.local.php';
+        $target = tempnam(sys_get_temp_dir(),'reference_');
+
+        $scpCommand = 'scp ' . $user . '@' . $host . ':"' . $source . '" "' . $target . '"';
+
+        system($scpCommand);
+
+        try {
+            if(!file_get_contents($target)) {
+                throw new \Exception('Unable to fetch remote settings.local.php content');
+            }
+            require $target;
+            unlink($target);
+        } catch (\Throwable $e) {
+            throw $e;
+        } finally {
+            if (file_exists($target)) {
+                unlink($target);
+            }
+        }
+
+        if(!isset($databases)) {
+            $this->output->writeln('<danger>No database configuration found in reference configuration</danger>');
+            return $config;
+        } else {
+            $config['reference']['db'] = array_merge($databases['default']['default'], $config['reference']['db'] ?? []);
+        }
+    }
 }

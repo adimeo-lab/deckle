@@ -6,7 +6,6 @@ namespace Adimeo\Deckle\Command;
 
 use Adimeo\Deckle\Command\Deckle\Bootstrap;
 use Adimeo\Deckle\Command\Deckle\Install;
-use Adimeo\Deckle\Command\Deckle\PushDockerConfig;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\Config\ConfigManager;
 use Adimeo\Deckle\Service\Placeholder\PlaceholderInterface;
@@ -73,7 +72,6 @@ abstract class AbstractDeckleCommand extends Command
     {
         $this->input = $input;
         $this->output = $output;
-        $output->setVerbosity(OutputInterface::VERBOSITY_NORMAL|OutputInterface::VERBOSITY_VERBOSE);
 
         if(!isset($this->projectConfig['project']['name'])) $this->loadProjectConfig();
     }
@@ -127,6 +125,7 @@ abstract class AbstractDeckleCommand extends Command
 
         $conf = [];
         $loadedFiles = 0;
+
         foreach ($configFiles as $configFile) {
             if (file_exists($this->expandTilde($configFile))) {
                 if ($this->output->isVerbose()) {
@@ -309,20 +308,21 @@ abstract class AbstractDeckleCommand extends Command
         return $this->projectConfig;
     }
 
-    protected function runCommandInContainer($command, $args = [], $workingDirectory = '~', $container = null)
+    protected function dockerExec($command, $args = [], $workingDirectory = '~', $container = null)
     {
 
         $containerId = is_null($container) ? $this->getAppContainerId() : $this->getContainerId($container);
 
         $cmd = 'docker exec -ti ' . $containerId . ' bash -c "cd ' . escapeshellarg($workingDirectory) . ';' . escapeshellcmd($command);
         foreach ($args as &$arg) {
-            $arg = escapeshellarg($arg);
+          //  $arg = escapeshellarg($arg);
         }
         $cmd .= ' ' . implode(' ', $args) . '"';
 
         if($this->output->isVeryVerbose()) {
             $this->output->writeln('Running <comment>' . $cmd . '</comment> on Docker remote host <comment>' . $this->projectConfig['docker']['host'] . '</comment>');
         }
+
         passthru($cmd);
     }
 
@@ -331,11 +331,10 @@ abstract class AbstractDeckleCommand extends Command
         $user = $user ?? $this->projectConfig['vm']['user'];
         $host = $host ?? $this->projectConfig['vm']['host'];
 
-
-
         if($workingDirectory != '~') {
             $command = 'cd ' . $workingDirectory . '; ' . $command;
         }
+
         $command = escapeshellarg($command);
         $sshCommand = 'ssh ' . $user . '@' . $host . ' ' . $command;
         if($this->output->isVeryVerbose()) {
@@ -346,7 +345,7 @@ abstract class AbstractDeckleCommand extends Command
         return $return;
     }
 
-    protected function scp($source, $target, $host = null, $user = null)
+    protected function  scp($source, $target, $host = null, $user = null)
     {
         $user = $user ?? $this->projectConfig['vm']['user'];
         $host = $host ?? $this->projectConfig['vm']['host'];
@@ -364,6 +363,8 @@ abstract class AbstractDeckleCommand extends Command
         return $return;
 
     }
+
+
 
 
     protected function getContainerId(string $containerName)

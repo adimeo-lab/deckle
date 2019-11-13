@@ -14,7 +14,7 @@ class Drupal extends AbstractDrupal8Command
     protected function configure()
     {
         parent::configure();
-        $this->setName('drupal8:drupal')
+        $this->setName('drupal8:console')
             ->setAliases(['d8'])
         ->setDescription('Run Drupal 8 console');
         $this->addArgument('args', InputArgument::IS_ARRAY|InputArgument::OPTIONAL, 'Drupal console arguments');
@@ -22,14 +22,9 @@ class Drupal extends AbstractDrupal8Command
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-
-        if($output->isVerbose()) {
             $output->writeln('Executing <comment>drush</comment> on remote container');
-
             $path = $this->projectConfig['app']['path'];
-
-            $this->runCommandInContainer('vendor/bin/drupal', $this->input->getArgument('args'), $path);
-        }
+            $this->dockerExec('vendor/bin/drupal', $this->input->getArgument('args'), $path);
     }
 
 

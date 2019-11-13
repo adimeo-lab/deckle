@@ -16,20 +16,34 @@ class Composer extends AbstractDeckleCommand
         parent::configure();
         $this->setName('php:composer')
             ->setAliases(['composer']);
-        $this->addArgument('args', InputArgument::IS_ARRAY|InputArgument::OPTIONAL, 'Composer arguments');
+        $this->addArgument('args', InputArgument::IS_ARRAY | InputArgument::OPTIONAL, 'Composer arguments');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
 
-        $this->loadProjectConfig();
+        $path = $this->projectConfig['app']['path'];
+        $args = $this->input->getArgument('args');
 
-        if($output->isVerbose()) {
-            $output->writeln('Executing <comment>composer</comment> on remote container');
+        switch($args[0] ?? false) {
 
-            $path = $this->projectConfig['app']['path'];
+            case 'clear':
 
-            $this->runCommandInContainer('composer ', $this->input->getArgument('args'), $path);
+                //$command = 'rm -rf web/core/* ; rm -rf vendor/* ; rm -rf web/modules/contrib/*';
+                $command = 'rm -rf ';
+                $args = ['*'];
+                $this->dockerExec($command, $args, $this->projectConfig['app']['path'] . '/web/core');
+                $args = ['*'];
+                $this->dockerExec($command, $args, $this->projectConfig['app']['path'] . '/vendor');
+                $args = ['*'];
+                $this->dockerExec($command, $args, $this->projectConfig['app']['path'] . '/web/modules/contrib');
+                break;
+
+            default:
+                $output->writeln('Executing <comment>composer</comment> on remote container');
+                $this->dockerExec('composer ', $args, $path);
+                break;
         }
+
     }
 }

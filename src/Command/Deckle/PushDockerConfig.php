@@ -28,9 +28,9 @@ class PushDockerConfig extends AbstractDeckleCommand
         $output->writeln(sprintf('Pushing <comment>deckle/docker</comment> to <comment>%s</comment> on development VM', $this->projectConfig['docker']['path']));
         // check if project already exists
         // TODO find another way to test directory existence silently!
-        ob_start();
-        $return = $this->ssh('ls ' . $this->projectConfig['docker']['path'] . ' > /dev/null ');
-        ob_get_clean();
+
+        $return = $this->ssh('ls ' . $this->projectConfig['docker']['path'] . ' &> /dev/null ');
+
 
         if(!$return) {
             if(!$input->getOption('reset')) {

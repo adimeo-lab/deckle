@@ -17,12 +17,9 @@ if($env == 'dev') {
 }
 
 try {
-    $kernel = new AppKernel($env, $debug);
-    $kernel->boot();
-    $app = $kernel->getContainer()->get(Deckle::class);
+    $app = new Deckle();
     $app->run();
-
-}catch (\Throwable $e) {
+} catch (\Throwable $e) {
     chdir($cwd);
     printf('Uncaught exception %s thrown in %s:%s' . PHP_EOL, get_class($e), $e->getFile(), $e->getLine());
     echo 'Message: ' . $e->getMessage() . PHP_EOL;

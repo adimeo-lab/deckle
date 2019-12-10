@@ -1,6 +1,6 @@
 {
   "chmod": "0755",
-  "directories": ["config/", "src/"],
+  "directories": ["src/"],
   "finder": [
     {
       "name": "*.php",
@@ -8,8 +8,7 @@
       "in": "vendor"
     }
   ],
-  "files": ["deckle.phar.php"],
-  "main": "deckle.phar.php",
+  "main": "deckle.php",
   "stub": true,
   "output": "deckle.phar"
 }

@@ -19,7 +19,7 @@ class PlaceholdersManagerTest extends Test
         $manager = $this->makeEmptyExcept(PlaceholdersManager::class, 'extractPlaceholders');
         $placeholders = $manager->extractPlaceholders($content);
 
-        $this->assertEquals(new Placeholder('conf<project.id>', 'conf', ['project.id']), $placeholders[0]);
+        $this->assertEquals(new Placeholder('conf<extra.google-api-key>', 'conf', ['extra.google-api-key']), current($placeholders));
 
     }
 
@@ -41,6 +41,6 @@ class PlaceholdersManagerTest extends Test
 
         $processed = Yaml::parse($content);
 
-        $this->assertEquals('1234', $processed['params']['api-key']);
+        $this->assertEquals('1234', $processed['extra']['api-key']);
     }
 }

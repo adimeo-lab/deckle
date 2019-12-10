@@ -6,6 +6,8 @@ namespace Adimeo\Deckle\Command\Deckle;
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Exception\DeckleException;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -19,14 +21,14 @@ class Init extends AbstractDeckleCommand
         parent::configure();
         $this->setName('init')
             ->setDescription('Process configuration files')
-            ->addOption('reset', 'r', InputOption::VALUE_NONE, 'Overwrite previously processed files');
+            ->addOption('reset', null, InputOption::VALUE_NONE, 'Overwrite previously processed files');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
 
         if (!is_dir('./deckle')) {
-            throw new DeckleException('No "./deckle" folder found. You may need to bootstrap your project.');
+            $this->error('No "./deckle" folder found. You may need to bootstrap your project.');
         }
 
         $type = $this->projectConfig['project']['type'];
@@ -35,7 +37,41 @@ class Init extends AbstractDeckleCommand
         $command = $this->getApplication()->find($initCommand);
 
         if(!$command) {
-            throw new DeckleException('Unable to init "' . $type . '"  projects.');
+            $this->error('Unable to init "%s" projects.', [$type]);
+        }
+
+
+        // process template before triggering project specific init process
+        $templateContent = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('./deckle/.template'));
+
+        while($templateContent->valid()) {
+
+            if (!$templateContent->isDot()) {
+
+                $source = $templateContent->key();
+                $targetDirectory = './deckle/' . $templateContent->getSubPath();
+                $targetFile = './deckle/' . $templateContent->getSubPathName();
+
+                if($this->output->isVerbose()) $this->output->writeln(sprintf('Creating target directory "<info>%s</info>"', $targetDirectory));
+                if(!is_dir($targetDirectory)) mkdir($targetDirectory, 0755, true);
+
+                if($this->output->isVerbose()) $this->output->writeln(sprintf('Copying "<info>%s</info>" to "<info>%s</info>"', $source, $targetFile));
+                $fileInfo = new \SplFileInfo($source);
+                // return mime type ala mimetype extension
+                $finfo = finfo_open(FILEINFO_MIME);
+                //check to see if the mime-type starts with 'text'
+                $binary = substr(finfo_file($finfo, $source), 0, 4) != 'text';
+                if(!$binary) {
+                    $this->copyTemplateFile($source, $targetFile, true,
+                        ['conf<project.name>', 'conf<app.port>']);
+                } else {
+                    copy($source, $targetFile);
+                }
+
+
+            }
+
+            $templateContent->next();
         }
 
         $command->setProjectConfig($this->getProjectConfig());

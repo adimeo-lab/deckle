@@ -1,15 +1,15 @@
 {
   "chmod": "0755",
-  "directories": ["config/", "src/", "resources/"],
+  "directories": ["config/", "src/"],
   "finder": [
     {
       "name": "*.php",
-      "exclude": ["test", "tests"],
+      "exclude": ["test", "tests", "Tests", "Test"],
       "in": "vendor"
     }
   ],
-  "files": ["deckle"],
-  "main": "deckle.sh",
+  "files": ["deckle.phar.php"],
+  "main": "deckle.phar.php",
   "stub": true,
   "output": "deckle.phar"
 }

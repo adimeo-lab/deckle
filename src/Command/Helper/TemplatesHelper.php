@@ -23,8 +23,9 @@ trait TemplatesHelper
 
     protected function getTemplatesDirectory()
     {
-        $target = $this->expandTilde(Install::DECKLE_HOME);
+        return  $this->expandTilde(Install::DECKLE_HOME);
     }
+
     protected function cacheTemplates()
     {
         $conf = $this->loadGlobalConfiguration();
@@ -50,8 +51,9 @@ trait TemplatesHelper
                 }
 
                 if ($errno) {
-                    throw new DeckleException([
+                    $this->error(
                         'Something went wrong while %s "%s". You should maybe reinstall Deckle...',
+                        [
                         $operation,
                         $repository
                     ]);
@@ -81,13 +83,17 @@ trait TemplatesHelper
 
     protected function loadGlobalConfiguration() : array
     {
-
         // TODO check configuration content
         $target = $this->getDeckleHomeDirectory();
         if(is_file($target . '/deckle.conf.yml' )) {
             return Yaml::parseFile($target . '/deckle.conf.yml');
         } else {
-            throw new ConfigException(['deckle.conf.yml was not found in "%s" folder. You may need to reinstall Deckle.', Install::DECKLE_HOME]);
+            if($this->getName() !== 'install') {
+                throw new ConfigException([
+                    'deckle.conf.yml was not found in "%s" folder. You may need to reinstall Deckle.',
+                    Install::DECKLE_HOME
+                ]);
+            }
         }
     }
 
@@ -130,7 +136,7 @@ trait TemplatesHelper
             $providers = (array) $providers;
             foreach($providers as $provider) {
                 if(!in_array($provider, $availableProviders)) {
-                    throw new DeckleException(['Unknown provider "%s". Please specify a provider among available ones (%s)', $provider, implode(', ', $availableProviders)]);
+                    $this->error('Unknown provider "%s". Please specify a provider among available ones (%s)', [$provider, implode(', ', [$availableProviders])]);
                 }
             }
         }

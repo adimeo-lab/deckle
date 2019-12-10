@@ -1,7 +1,0 @@
-project:
-  id: ask<Project id>
-  template: adimeo/symfony4
-params:
-  some: param
-env:
-

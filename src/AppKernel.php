@@ -16,6 +16,11 @@ class AppKernel extends Kernel
         return [];
     }
 
+    public function getCacheDir()
+    {
+        return sys_get_temp_dir() . '/deckle/cache';
+    }
+
     public function registerContainerConfiguration(LoaderInterface $loader)
     {
         $loader->load(dirname(__DIR__) . '/config/services.yml');

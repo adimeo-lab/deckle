@@ -1,9 +1,10 @@
 <?php
 
 
-namespace Adimeo\Deckle\Command;
+namespace Adimeo\Deckle\Command\Mutagen;
 
 
+use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Exception\DeckleException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -22,7 +23,7 @@ class Mutagen extends AbstractDeckleCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         if(!is_file('deckle/mutagen.yml')) {
-            throw new DeckleException('No deckle/mutagen.yml file was found. Cannot control mutagen for this project.');
+            $this->error('No deckle/mutagen.yml file was found. Cannot control mutagen for this project.');
         }
 
 
@@ -49,7 +50,8 @@ class Mutagen extends AbstractDeckleCommand
                 break;
 
             default:
-                throw new DeckleException('Unknown mutagen operation "' . $cmd . '"');
+                $this->error('Unknown mutagen operation "%s"', [$cmd]);
+                break;
         }
     }
 

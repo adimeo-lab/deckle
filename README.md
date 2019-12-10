@@ -37,12 +37,10 @@ d'isntallation.
 
 Télécharger ensuite la dernière image disponible sur [le site de Deckle](https://deckle.io/images/paralles/desckle-latest.pvm)
 
-Une fois la machine démarée, penser à récupérer sont adresse IP, que l'on référencera plsu tard dans ce document `IPVM`.
-
-Il est également vivement recommander d'ajouter la ligne suivante au fichier `/etc/hosts` du Mac :
+Une fois la machine démarée, penser à récupérer son adresse IP, que l'on référencera plus tard dans ce document `<IPVM>`.
 
 ```shell script
-sudo bash -c "echo 'IPVM    ubuntu-dev-server' >> /etc/hosts'"
+ping deckle-vm
 ```
 
 #### Git
@@ -63,7 +61,7 @@ brew install docker
 
 #### Dnsmasq
 
-Pour permettre la résolution des domaines *.docker.local, il faudra utiliser dnsmasq, un pseudo-serveur DNS local.
+Pour permettre la résolution des domaines *.deckle.local, il faudra utiliser dnsmasq, un pseudo-serveur DNS local.
 
 Celui-ci s'installe également avec `brew` :
 
@@ -73,20 +71,20 @@ brew install dnsmasq
 
 Sa configuration est assez simple :
 
-D'abord, créer la configuration qui permettra la résolution des domaines `*.docker.local` dans `dnsmasq` :
+D'abord, créer la configuration qui permettra la résolution des domaines `*.deckle.local` dans `dnsmasq` :
 
 ```shell script
-echo 'address=/.docker.local/IPVM' >> /usr/local/etc/dnsmasq.conf
+echo 'address=/.deckle.local/IPVM' >> /usr/local/etc/dnsmasq.conf
 ```  
 
 NOTE: bien penser à remplacer `IPVM` par la véritable adresse IP de votre machine.
 
 Enfin, dire à macOs d'utiliser dnsmasq pour résoudre toutes les requêtes DNS portant sur les domaines se terminant 
-par `docker.local` :
+par `deckle.local` :
 
 ```shell script
 sudo mkdir /etc/resolver
-sudo bash -c 'echo "nameserver 127.0.0.1" > /etc/resolver/docker.local'
+sudo bash -c 'echo "nameserver 127.0.0.1" > /etc/resolver/deckle.local'
 dscacheutil -flushcache
 sudo killall -HUP mDNSResponder
 ``` 
@@ -119,7 +117,7 @@ clé devrait être associée à votre compte GitHub mais ce n'est pas indispensa
 La première étape consiste donc à copier votre clé publique sur la VM :
 
 ```shell script
-ssh-copy-id ubuntu@ubuntu-dev-server
+ssh-copy-id deckle@deckle-vm
 ```
 
 Ensuite, il faut indiquer à SSH que l'on souhaite propager sa clé privée dans les sessions distantes (ce qui permet de ne PAS 
@@ -133,9 +131,9 @@ vi ~/.ssh/config
 Et en y ajoutant la section suivante :
 
 ```apacheconfig
-Host ubuntu-dev-server
-        Hostname ubuntu-dev-server
-        User ubuntu
+Host deckle-vm
+        Hostname deckle-vm
+        User deckle
         UseKeychain yes
         AddKeysToAgent yes
         ServerAliveInterval 60
@@ -152,10 +150,10 @@ Pour cela, il faut indiquer au client Docker l'adresse de l'hôte Docker :
 
 ```
 # pour bash
-echo "export DOCKER_HOST=ubuntu-dev-server:4342" >> ~/.bashrc
+echo "export DOCKER_HOST=deckle-vm:4342" >> ~/.bashrc
 
 # pour zsh
-echo "export DOCKER_HOST=ubuntu-dev-server:4342" >> ~/.zshrc
+echo "export DOCKER_HOST=deckle-vm:4342" >> ~/.zshrc
 ```
 
 
@@ -224,15 +222,15 @@ deckle sh
 
 ## Portainer
 
-http://portainer.docker.local
+http://portainer.deckle.local
 admin/docker-admin
 
 ## Traefik
-http://traefik.docker.local
+http://traefik.deckle.local
 
 ## phpMyAdmin
 
-http://pma.docker.local
+http://pma.deckle.local
 
 
 # Problèmes fréquents

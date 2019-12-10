@@ -16,26 +16,31 @@ class PushDockerConfig extends AbstractDeckleCommand
     {
         parent::configure();
 
-        $this->setName('deckle:push')
+        $this->setName('push')
             ->addOption('reset', null, InputOption::VALUE_NONE, 'Delete existing remote files if exist')
-        ->setAliases(['push']);
+            ->setDescription('Push deckle/docker configuration files to dev VM')
+        ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
 
+        $output->writeln(sprintf('Pushing <comment>deckle/docker</comment> to <comment>%s</comment> on development VM', $this->projectConfig['docker']['path']));
         // check if project already exists
+        // TODO find another way to test directory existence silently!
+        ob_start();
         $return = $this->ssh('ls ' . $this->projectConfig['docker']['path'] . ' > /dev/null ');
+        ob_get_clean();
 
         if(!$return) {
             if(!$input->getOption('reset')) {
-                throw new DeckleException('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
+                $this->error('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
             }
              else {
                  // delete remote environment
                  $return = $this->ssh('rm -rf ' . $this->projectConfig['docker']['path']);
                  if($return) {
-                     throw new DeckleException('An error occurred while deleting remote directory ' . $this->projectConfig['docker']['path']);
+                     $this->error('An error occurred while deleting remote directory "%s"', [$this->projectConfig['docker']['path']]);
                  }
              }
         }
@@ -43,19 +48,7 @@ class PushDockerConfig extends AbstractDeckleCommand
         // copy Docker configuration to remote environment
         $this->scp('deckle/docker', $this->projectConfig['docker']['path']);
 
-        // generate .env for docker-compose
-        $envVars = [];
 
-        $envVars['COMPOSE_PROJECT_NAME'] = $this->projectConfig['project']['name'];
-        $envVars['APACHE_PORT'] = $this->projectConfig['app']['port'];
-
-        $env = '';
-        foreach ($envVars as $var => $value) {
-            $env .= $var . '=' . $value . PHP_EOL;
-        }
-
-        $this->ssh('touch ' . $this->projectConfig['docker']['path'] . '/.env');
-        $this->ssh('echo "' . $env . '" > ' . $this->projectConfig['docker']['path'] . '/.env');
     }
 
 }

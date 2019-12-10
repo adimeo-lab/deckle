@@ -6,21 +6,20 @@ namespace Adimeo\Deckle\Command\Deckle;
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
+use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Service\Recipes\TemplatesManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class TemplatesList extends AbstractDeckleCommand
+class TemplatesList extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
 
     use TemplatesHelper;
 
     protected function configure()
     {
-        parent::configure();
         $this->setName("templates:list")
-            ->setAliases(['rl'])
-            ->setDescription("List available recipes");
+            ->setDescription("List available templates");
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)

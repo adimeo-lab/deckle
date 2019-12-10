@@ -4,8 +4,8 @@
 namespace Adimeo\Deckle\Command;
 
 
-use Adimeo\Deckle\Command\Deckle\Bootstrap;
 use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Config\DeckleConfig;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\Config\ConfigManager;
 use Adimeo\Deckle\Service\Placeholder\PlaceholderInterface;
@@ -24,9 +24,6 @@ abstract class AbstractDeckleCommand extends Command
 {
     /** @var ConfigManager */
     protected $configManager;
-
-    /** @var string */
-    protected $env;
 
     /** @var array */
     protected $projectConfig = [];
@@ -60,8 +57,6 @@ abstract class AbstractDeckleCommand extends Command
         $this->configManager = $configManager;
         $this->placeholdersManager = $placeholdersManager;
 
-        $this->loadEnvironment();
-
         parent::__construct(null);
         $this->addOption('config-file', 'c', InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
             'Extra configuration file', []);
@@ -73,29 +68,15 @@ abstract class AbstractDeckleCommand extends Command
         $this->input = $input;
         $this->output = $output;
 
-        if(!isset($this->projectConfig['project']['name'])) $this->loadProjectConfig();
-    }
+        if (!$this instanceof ProjectIndependantCommandInterface) {
+            if (!is_dir('./deckle')) {
+                $this->error('No "./deckle" folder found. You may need to bootstrap your project.');
+            }
 
-    /**
-     * @return bool
-     */
-    protected function loadEnvironment(): bool
-    {
-        if (!file_exists('./.deckle.env')) {
-            // throw new DeckleException('.deckle.env file is missing. Did you bootstrap your project?');
-            // default to dev
-            $environment = 'dev';
-        } else {
-            $environment = trim(file_get_contents('./.deckle.env'));
+            if (!isset($this->projectConfig['project']['name'])) {
+                $this->loadProjectConfig();
+            }
         }
-
-        if (!in_array($environment, ['dev', 'prod'])) {
-            throw new DeckleException(['Invalid environment "%s" set in .deckle.env', $environment]);
-        }
-
-        $this->env = $environment;
-
-        return $environment;
     }
 
     /**
@@ -104,8 +85,9 @@ abstract class AbstractDeckleCommand extends Command
     public function loadProjectConfig()
     {
         $configFiles = [
-            '~/.deckle/deckle.yml',
-            './deckle.yml',
+            Install::DECKLE_HOME . '/deckle.conf.yml',
+            Install::DECKLE_HOME . '/deckle.local.yml',
+            './deckle/deckle.yml',
             './deckle.local.yml'
         ];
 
@@ -114,11 +96,7 @@ abstract class AbstractDeckleCommand extends Command
             $configFiles = array_merge($configFiles, $extraConfigurationFiles);
         }
 
-        if (!is_dir('./deckle')) {
-            if (($this instanceof Bootstrap) || $this instanceof Install) {
-                return;
-            }
-        }
+
         if ($this->output->isVerbose()) {
             $this->output->writeln("Importing configuration files");
         }
@@ -128,8 +106,8 @@ abstract class AbstractDeckleCommand extends Command
 
         foreach ($configFiles as $configFile) {
             if (file_exists($this->expandTilde($configFile))) {
-                if ($this->output->isVerbose()) {
-                    $this->output->writeln("\tLoading configuration file <comment>" . $configFile . "</comment>");
+                if ($this->output->isVeryVerbose()) {
+                    $this->output->writeln("Loading configuration file <comment>" . $configFile . "</comment>");
                 }
                 $loadedConf = $this->configManager->load($this->expandTilde($configFile));
 
@@ -143,10 +121,11 @@ abstract class AbstractDeckleCommand extends Command
         }
 
         if (!$loadedFiles) {
-            $this->output->writeln('<warning>No deckle config file found</warning>');
+            $this->error('No deckle config file found!');
             exit;
         }
 
+        /*
         if (isset($conf['project']['extra_' . $this->getEnv() . '_configuration'])) {
             $extraConfigurationFiles = $conf['project']['extra_' . $this->getEnv() . '_configuration'];
             foreach ($extraConfigurationFiles as $file) {
@@ -157,6 +136,7 @@ abstract class AbstractDeckleCommand extends Command
                 $conf = $this->configManager->merge($conf, $extra);
             }
         }
+        */
 
         // add default values
         if (!isset($conf['project']['name'])) {
@@ -165,11 +145,17 @@ abstract class AbstractDeckleCommand extends Command
         }
 
         if (!isset($conf['docker']['host'])) {
-            $conf['docker'] = [];
+            if (!isset($conf['docker'])) {
+                $conf['docker'] = [];
+            }
             $conf['docker']['host'] = getenv('DOCKER_HOST') ?? 'localhost:4243';
         }
 
-        $this->projectConfig = $conf;
+        try {
+            $this->projectConfig = (new DeckleConfig($conf))->getConfigArray();
+        } catch (DeckleException $e) {
+            $this->error($e->getMessage());
+        }
 
     }
 
@@ -186,21 +172,6 @@ abstract class AbstractDeckleCommand extends Command
         return $path;
     }
 
-    /**
-     * @return string
-     */
-    public function getEnv(): string
-    {
-        return $this->env;
-    }
-
-    /**
-     * @param string $env
-     */
-    public function setEnv(string $env): void
-    {
-        $this->env = $env;
-    }
 
     /**
      * @param array $config
@@ -218,13 +189,14 @@ abstract class AbstractDeckleCommand extends Command
     public function getConfigDirective($key, $default = null)
     {
         $config = $this->getProjectConfig();
-        codecept_debug($config);
         do {
             $path = explode('.', $key);
-            codecept_debug($path);
             if (count($path) == 1) {
                 return $config[$path[0]] ?? $default;
             } else {
+                if (!isset($config[$path[0]])) {
+                    return $default;
+                }
                 $config = $config[$path[0]];
                 $key = $path[1];
             }
@@ -243,11 +215,17 @@ abstract class AbstractDeckleCommand extends Command
 
     }
 
-    public function resolvePlaceholderValue(PlaceholderInterface $placeholder): string
+    /**
+     * @param PlaceholderInterface $placeholder
+     * @param bool $silent Silently fails
+     * @return string
+     * @throws DeckleException
+     */
+    public function resolvePlaceholderValue(PlaceholderInterface $placeholder, $silent = false): string
     {
 
         if (isset($this->currentlyResolving[$placeholder->getRaw()])) {
-            throw new DeckleException(['Circular resolution detected while resolving "%s"', $placeholder->getRaw()]);
+            $this->error('Circular resolution detected while resolving "%s"', [$placeholder->getRaw()]);
         }
         $this->currentlyResolving[$placeholder->getRaw()] = true;
 
@@ -268,11 +246,12 @@ abstract class AbstractDeckleCommand extends Command
                 break;
 
             default:
-                throw new DeckleException([
+                $this->error(
                     'Unknown placeholder type "%s" in placeholder "%s"',
-                    $placeholder->getType(),
-                    $placeholder->getRaw()
-                ]);
+                    [
+                        $placeholder->getType(),
+                        $placeholder->getRaw()
+                    ]);
         }
         if (!$value) {
             if (isset($placeholder->getParams()['default'])) {
@@ -284,8 +263,11 @@ abstract class AbstractDeckleCommand extends Command
             return $value;
         }
 
+        if (!$silent) {
+            $this->error('Unable to resolve value for placeholder "%s"', [$placeholder->getRaw()]);
+        }
 
-        throw new DeckleException(['Unable to resolve value for placeholder "%s"', $placeholder->getRaw()]);
+        return '';
     }
 
     protected function processPlaceholders($param)
@@ -300,7 +282,7 @@ abstract class AbstractDeckleCommand extends Command
     /**
      * @return array
      */
-    public function getProjectConfig(): array
+    public function getProjectConfig()
     {
         if (!$this->projectConfig) {
             $this->loadProjectConfig();
@@ -315,11 +297,11 @@ abstract class AbstractDeckleCommand extends Command
 
         $cmd = 'docker exec -ti ' . $containerId . ' bash -c "cd ' . escapeshellarg($workingDirectory) . ';' . escapeshellcmd($command);
         foreach ($args as &$arg) {
-          //  $arg = escapeshellarg($arg);
+            //  $arg = escapeshellarg($arg);
         }
         $cmd .= ' ' . implode(' ', $args) . '"';
 
-        if($this->output->isVeryVerbose()) {
+        if ($this->output->isVeryVerbose()) {
             $this->output->writeln('Running <comment>' . $cmd . '</comment> on Docker remote host <comment>' . $this->projectConfig['docker']['host'] . '</comment>');
         }
 
@@ -331,13 +313,13 @@ abstract class AbstractDeckleCommand extends Command
         $user = $user ?? $this->projectConfig['vm']['user'];
         $host = $host ?? $this->projectConfig['vm']['host'];
 
-        if($workingDirectory != '~') {
+        if ($workingDirectory != '~') {
             $command = 'cd ' . $workingDirectory . '; ' . $command;
         }
 
         $command = escapeshellarg($command);
         $sshCommand = 'ssh ' . $user . '@' . $host . ' ' . $command;
-        if($this->output->isVeryVerbose()) {
+        if ($this->output->isVeryVerbose()) {
             $this->output->writeln('About to execute SSH command: <comment>' . $sshCommand . '</comment>');
         }
         $this->lastSshCommandOutput = exec($sshCommand, $output, $return);
@@ -345,7 +327,7 @@ abstract class AbstractDeckleCommand extends Command
         return $return;
     }
 
-    protected function  scp($source, $target, $host = null, $user = null)
+    protected function scp($source, $target, $host = null, $user = null)
     {
         $user = $user ?? $this->projectConfig['vm']['user'];
         $host = $host ?? $this->projectConfig['vm']['host'];
@@ -354,7 +336,7 @@ abstract class AbstractDeckleCommand extends Command
 
         $scpCommand = 'scp ' . $args . ' ' . $source . ' ' . $user . '@' . $host . '":' . $target . '"';
 
-        if($this->output->isVeryVerbose()) {
+        if ($this->output->isVeryVerbose()) {
             $this->output->writeln('About to execute SCP command: <comment>' . $scpCommand . '</comment>');
         }
 
@@ -365,11 +347,26 @@ abstract class AbstractDeckleCommand extends Command
     }
 
 
+    protected function dockerStatus()
+    {
+        $ch = curl_init($this->projectConfig['docker']['host'] . '/_ping');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+
+        $ping = curl_exec($ch);
+
+        if ($ping) {
+            if ($ping === 'OK') {
+                return true;
+            }
+        }
+        return false;
+
+
+    }
 
 
     protected function getContainerId(string $containerName)
     {
-
         $ch = curl_init($this->projectConfig['docker']['host'] . '/containers/json');
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 
@@ -378,17 +375,18 @@ abstract class AbstractDeckleCommand extends Command
         if ($containers) {
             $containers = json_decode($containers, true);
         } else {
-            throw new DeckleException(['Docker does not seem to be running on %s', $this->projectConfig['docker']['host']]);
+            $this->error('Docker does not seem to be running on %s', [$this->projectConfig['docker']['host']]);
         }
 
 
         foreach ($containers as $container) {
             foreach ($container['Names'] as $name) {
-                if ($containerName == trim($name, '/') || $containerName . '_1' == trim($name, '/')) {
+                if ($containerName == trim($name, '/')) {
                     return $container['Id'];
                 }
             }
         }
+
     }
 
     protected function getAppContainerId()
@@ -413,6 +411,118 @@ abstract class AbstractDeckleCommand extends Command
     {
         $this->lastSshCommandOutput = $lastSshCommandOutput;
         return $this;
+    }
+
+    /**
+     * @return PlaceholdersManager
+     */
+    public function getPlaceholdersManager(): PlaceholdersManager
+    {
+        return $this->placeholdersManager;
+    }
+
+    /**
+     * @param PlaceholdersManager $placeholdersManager
+     * @return AbstractDeckleCommand
+     */
+    public function setPlaceholdersManager(PlaceholdersManager $placeholdersManager): AbstractDeckleCommand
+    {
+        $this->placeholdersManager = $placeholdersManager;
+        return $this;
+    }
+
+    protected function error(string $message, array $vars = [])
+    {
+        $exceptionParams = array_merge([$message], $vars);
+        $messageParams = $vars;
+
+        array_walk($messageParams, function (&$param) {
+            $param = '<info>' . $param . '</info>';
+        });
+        $displayedMessage = vsprintf($message, $vars);
+
+        $this->output->writeln('');
+        $this->output->writeln('An error occurred:');
+        $this->output->writeln("\t" . '<error>' . $displayedMessage . '</error>');
+        $this->output->writeln('');
+        if ($this->output->getVerbosity() > OutputInterface::VERBOSITY_NORMAL) {
+            $e = new DeckleException($exceptionParams);
+            throw $e;
+        }
+
+    }
+
+    /**
+     * @param $template
+     * @param bool $ignoreMissing Silently ignore unresolved placeholders
+     * @param array $ignoreExceptions Raw placeholders that should not be ignored
+     * @return mixed
+     */
+    protected function processTemplate($template, $ignoreMissing = false, $ignoreExceptions = [])
+    {
+        $manager = $this->getPlaceHoldersManager();
+        $placeholders = $manager->extractPlaceholders($template);
+
+        /** @var PlaceholderInterface $placeholder */
+        foreach ($placeholders as $placeholder) {
+            $value = $this->resolvePlaceholderValue($placeholder, $ignoreMissing);
+
+            if (!$value && $ignoreMissing && !in_array($placeholder->getRaw(), $ignoreExceptions)) {
+                continue;
+            }
+            if ($this->output->isVeryVerbose()) {
+                $this->output->writeln(sprintf('Replacing "<info>%s</info>" placeholder with resolved value "<info>%s</info>"',
+                    $placeholder->getRaw(), $value));
+            }
+            $template = $manager->substitutePlaceholder($template, $placeholder, $value);
+        }
+
+        return $template;
+    }
+
+    protected function copyTemplateFile(
+        string $templateFile,
+        string $target,
+        $ignoreMissing = true,
+        $ignoreExceptions = []
+    ) {
+        if (!is_file($templateFile)) {
+            $this->error('Template file "%s" does not exist', [$templateFile]);
+        }
+        if (!is_dir($target) && !is_dir(dirname($target))) {
+            $this->error('Target directory for copying to "%s" does not exist', [$target]);
+        }
+
+        $template = file_get_contents($templateFile);
+        file_put_contents($target, $this->processTemplate($template, $ignoreMissing));
+
+    }
+
+    protected function findVmAddressInHosts()
+    {
+        $entries = file('/etc/hosts');
+        foreach ($entries as $entry) {
+            if (strpos(trim($entry), '#') === 0) {
+                continue;
+            }
+            [$ip, $names] = preg_split('/\s+/', $entry, 2);
+            $names = preg_split('/\s+/', $names);
+            if (in_array('deckle-vm', $names)) {
+                return $ip;
+            }
+        }
+
+        return null;
+    }
+
+    protected function getVersion()
+    {
+        $version = $this->getApplication()->getVersion();
+        if (strpos($version, 'git')) {
+            $version = 'development';
+        }
+
+        return $version;
     }
 
 }

@@ -26,7 +26,11 @@ class PlaceholdersManager
                 }
             }
 
-            $placeholders[] = new Placeholder($rawPlaceholder, $type, $params);
+            // prevent duplicates
+            if(isset($placeholders[$rawPlaceholder])) {
+                continue;
+            }
+            $placeholders[$rawPlaceholder] = new Placeholder($rawPlaceholder, $type, $params);
         }
 
         return $placeholders;

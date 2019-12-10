@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Command\Drupal8;
 
 
+use Adimeo\Deckle\Service\Misc\ArrayTool;
 use mysql_xdevapi\Exception;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -25,6 +26,10 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
 
             // complete with settings.local.php from reference if needed
             $this->fillConfigFromReferenceSettings($config);
+
+            if(empty(    $config['reference']['db']['database'])) {
+                $this->error('Looks like Deckle failed retrieving complete reference DB configuration (missing at least "database" name!)');
+            }
 
             $command = sprintf('mysqldump -h%s -u%s -p%s %s > %s-dump.sql',
                 $config['reference']['db']['host'],
@@ -120,7 +125,7 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
             $this->output->writeln('<danger>No database configuration found in reference configuration</danger>');
             return $config;
         } else {
-            $config['reference']['db'] = array_merge($databases['default']['default'], $config['reference']['db'] ?? []);
+            $config['reference']['db'] = array_merge($databases['default']['default'], ArrayTool::filterRecursive($config['reference']['db']) ?? []);
         }
     }
 }

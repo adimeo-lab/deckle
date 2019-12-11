@@ -33,7 +33,6 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
         $this->setName('bootstrap')
             ->setDescription('Import Deckle template in your development environment')
             ->addOption('reset', null, InputOption::VALUE_NONE, 'Clean any previous deckle project present in current directory. <info>Warning, you may loose data!</info>')
-            ->addOption('app.path', 'p', InputOption::VALUE_OPTIONAL, 'Application path in container', '/var/www/html')
             ->addArgument('project', InputArgument::REQUIRED, 'Project name. Will be used as db name, container name, etc.')
             ->addArgument('template', InputArgument::OPTIONAL,
                 'Deckle template to use to bootstrap your project (syntax: vendor/template)');
@@ -65,9 +64,6 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
             $this->setProjectConfig(['project'=>
                 [
                     'name' => $input->getArgument('project')
-                ],
-                    'app' => [
-                      'path' => $input->getOption('app.path')
                 ]
             ]);
 

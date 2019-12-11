@@ -41,12 +41,13 @@ trait TemplatesHelper
                 if (!is_dir($targetRepository)) {
                     $this->output->writeln('Cloning <info>' . $repository . '</info> in <info>' . $targetRepository . '</info>');
                     $operation = 'cloning';
-                    system('git clone ' . escapeshellarg($repository) . ' ' . $targetRepository, $errno);
+                    exec('git clone ' . escapeshellarg($repository) . ' ' . $targetRepository . ' 2>&1', $output, $errno);
+
                 } else {
                     $this->output->writeln('<info>Updating <info>' . $repository . '</info>');
                     $operation = 'pulling';
                     chdir($targetRepository);
-                    system('git pull', $errno);
+                    system('git pull 2>&1', $errno);
                     chdir('..');
                 }
 
@@ -59,9 +60,9 @@ trait TemplatesHelper
                     ]);
                 }
             }
+            $this->output->writeln('Done ' . $operation . ' repositories!');
         }
 
-        $this->output->writeln('Done updating repositories!');
     }
 
     protected function sanitizeProviderName($repository)

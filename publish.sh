@@ -1,11 +1,7 @@
 #!/bin/sh
 
-
-
 TAG=$1
 COMMIT_LOG=`git log -1 --format='%ci %H %s'`
-
-
 
 # create the tag
 git tag -a "${TAG}"

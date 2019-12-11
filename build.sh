@@ -9,7 +9,5 @@ box build
 echo "Restoring dependencies..."
 composer install
 
-echo "Geenrating .version file"
-php -r "echo sha1_file('deckle.phar');" > .version
 echo ""
 echo "./deckle.phar has been built successfully!";

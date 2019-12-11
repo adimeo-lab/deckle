@@ -18,7 +18,7 @@ Pour fonctionner de manière optimale, l'ecosystème Deckle requiert les compsoa
  - [Parallels Desktop](http://www.parallels.com)
  - [Homebrew](http://www.homebrew.com)
  - [Mutagen](http://www.mutagen.io)
- - Une VM préconfigurée (lien à venir)     
+ - [Vagrant](http://www.vagrantup.com)     
 
 NOTE : Deckle fonctionnera de la même manière avec tout autre moteur de virtualisation, mais sur macOs, il se révèle 
 particulièrement performant et ergonomique.

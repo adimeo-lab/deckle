@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle;
 
 
+use Adimeo\Deckle\Command\Apps\Apps;
 use Adimeo\Deckle\Command\Deckle\Bootstrap;
 use Adimeo\Deckle\Command\Deckle\Clear;
 use Adimeo\Deckle\Command\Deckle\Config;
@@ -12,8 +13,10 @@ use Adimeo\Deckle\Command\Deckle\Info;
 use Adimeo\Deckle\Command\Deckle\Init;
 use Adimeo\Deckle\Command\Deckle\Install;
 use Adimeo\Deckle\Command\Deckle\PushDockerConfig;
+use Adimeo\Deckle\Command\Deckle\Selfupdate;
 use Adimeo\Deckle\Command\Deckle\TemplatesList;
 use Adimeo\Deckle\Command\Deckle\Update;
+use Adimeo\Deckle\Command\Deckle\Version;
 use Adimeo\Deckle\Command\Docker\Compose;
 use Adimeo\Deckle\Command\Docker\Shell;
 use Adimeo\Deckle\Command\Drupal8\Drupal;
@@ -117,6 +120,8 @@ class Deckle extends Application
             PushDockerConfig::class,
             TemplatesList::class,
             Update::class,
+            Selfupdate::class,
+            Version::class,
 
             // Docker
             Compose::class,
@@ -140,7 +145,8 @@ class Deckle extends Application
             Ip::class,
             Ssh::class,
             AddKnownHost::class,
-            SshCopyId::class
+            SshCopyId::class,
+            Apps::class
 
         ];
         $container = new ServicesFactory();

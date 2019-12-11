@@ -14,6 +14,7 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 
 /**
@@ -322,7 +323,8 @@ abstract class AbstractDeckleCommand extends Command
         if ($this->output->isVeryVerbose()) {
             $this->output->writeln('About to execute SSH command: <comment>' . $sshCommand . '</comment>');
         }
-        $this->lastSshCommandOutput = exec($sshCommand, $output, $return);
+        exec($sshCommand, $output, $return);
+        $this->lastSshCommandOutput = $output;
 
         return $return;
     }
@@ -398,7 +400,7 @@ abstract class AbstractDeckleCommand extends Command
     /**
      * @return string
      */
-    public function getLastSshCommandOutput(): string
+    public function getLastSshCommandOutput(): array
     {
         return $this->lastSshCommandOutput;
     }
@@ -407,7 +409,7 @@ abstract class AbstractDeckleCommand extends Command
      * @param string $lastSshCommandOutput
      * @return AbstractDeckleCommand
      */
-    public function setLastSshCommandOutput(string $lastSshCommandOutput): AbstractDeckleCommand
+    public function setLastSshCommandOutput(array $lastSshCommandOutput): AbstractDeckleCommand
     {
         $this->lastSshCommandOutput = $lastSshCommandOutput;
         return $this;
@@ -519,10 +521,27 @@ abstract class AbstractDeckleCommand extends Command
     {
         $version = $this->getApplication()->getVersion();
         if (strpos($version, 'git')) {
-            $version = 'development';
+
+            if(is_dir('.git')) {
+                $head = file_get_contents('.git//HEAD');
+                $branch = rtrim(preg_replace("/(.*?\/){2}/", '', $head));
+                $version = $branch . '-' . exec('git rev-parse --short HEAD');
+            }
+            else {
+                $version = 'unknown';
+            }
         }
 
         return $version;
+    }
+
+    protected function confirm($question, $default = 'n') : bool
+    {
+        $helper = $this->getHelper('question');
+        $defaultChoice = $default == 'n' ? 'yN' : 'Yn';
+        $question = new ConfirmationQuestion('<question>' . $question . '</question> ' . $defaultChoice, false);
+
+        return $helper->ask($this->input, $this->output, $question);
     }
 
 }

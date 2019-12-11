@@ -8,6 +8,8 @@
       "in": "vendor"
     }
   ],
+  "git-commit": "git_commit",
+  "git-version": "package_version",
   "main": "deckle.php",
   "stub": true,
   "output": "deckle.phar"

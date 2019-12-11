@@ -46,7 +46,7 @@ class Deckle extends Application
      * @param string $name
      * @param string $version
      */
-    public function __construct($name = 'Deckle', $version = '@git-version@')
+    public function __construct($name = 'Deckle', $version = '@package_version@')
     {
         // convert errors to exceptions
         set_error_handler(
@@ -67,9 +67,9 @@ class Deckle extends Application
     /**
      * @override
      */
-    public function getLongVersion()
+    public function __getLongVersion()
     {
-        if (('@' . 'git-version@') !== $this->getVersion()) {
+        if (('@' . 'package_version@') !== $this->getVersion()) {
             return sprintf(
                 '<info>%s</info> version <comment>%s</comment> build <comment>%s</comment>',
                 $this->getName(),

@@ -7,6 +7,7 @@ namespace Adimeo\Deckle\Command\Deckle;
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Helper\ConfigHelper;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
+use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Exception\DeckleException;
 use Hoa\File\SplFileInfo;
 use RecursiveDirectoryIterator;
@@ -19,7 +20,7 @@ use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Filesystem\Filesystem;
 
-class Bootstrap extends AbstractDeckleCommand
+class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
 
     use TemplatesHelper;
@@ -33,7 +34,6 @@ class Bootstrap extends AbstractDeckleCommand
             ->addOption('reset', null, InputOption::VALUE_NONE, 'Clean any previous deckle project present in current directory. <info>Warning, you may loose data!</info>')
             ->addOption('app.path', 'p', InputOption::VALUE_OPTIONAL, 'Application path in container', '/var/www/html')
             ->addArgument('project', InputArgument::REQUIRED, 'Project name. Will be used as db name, container name, etc.')
-            ->addArgument('app.port', InputArgument::REQUIRED, 'Project application port (for Docker port forwarding')
             ->addArgument('template', InputArgument::OPTIONAL,
                 'Deckle template to use to bootstrap your project (syntax: vendor/template)');
     }
@@ -62,11 +62,10 @@ class Bootstrap extends AbstractDeckleCommand
             // TODO sanitize project name
             $this->setProjectConfig(['project'=>
                 [
-                'name' => $input->getArgument('project')
+                    'name' => $input->getArgument('project')
                 ],
-                'app' => [
-                    'port' => $input->getArgument('app.port'),
-                    'path' => $input->getOption('app.path')
+                    'app' => [
+                      'path' => $input->getOption('app.path')
                 ]
             ]);
 

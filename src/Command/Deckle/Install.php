@@ -1,8 +1,6 @@
 <?php
 
-
 namespace Adimeo\Deckle\Command\Deckle;
-
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
@@ -73,19 +71,18 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
                 return;
             }
 
-
-
         }
 
-
         $output->writeln(sprintf('Creating "<info>%s"</info>" directory...', $target));
-
 
         mkdir($target);
         $output->writeln(sprintf('Copying default Deckle configuration to <info>%s</info>', $target));
         $defaultConf = <<<END
 providers:
   - https://github.com/adimeo-lab/deckle-templates
+vm:
+  host: deckle-vm
+  user: deckle
 END;
 
         file_put_contents($target . '/deckle.conf.yml', $defaultConf );

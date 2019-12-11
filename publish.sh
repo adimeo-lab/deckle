@@ -1,5 +1,18 @@
 #!/bin/sh
-echo "Publishing deckle.phar on deckle.adimeo.eu"
-scp deckle.phar root@deckle.adimeo.eu:/var/www/html/deckle/public/releases/latest.phar
-scp .version root@deckle.adimeo.eu:/var/www/html/deckle/public/releases/latest.version
-echo "Done!"
+TAG=$1
+COMMIT_LOG=`git log -1 --format='%ci %H %s'`
+
+# create the tag
+git tag -a "${TAG}"
+
+# push it
+git push --tags
+
+github-release upload \
+  --owner=adimeo-lab \
+  --repo=deckle \
+  --tag="${TAG}" \
+  --name="${TAG}" \
+  --body="${COMMIT_LOG}" \
+  "deckle.phar"
+

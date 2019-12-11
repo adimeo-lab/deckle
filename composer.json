@@ -2,7 +2,7 @@
   "name": "adimeo-lab/deckle",
   "type": "application",
   "description": "Automation tool for containerized projects",
-  "license": "GPL-v3",
+  "license": "GPL-v3-only",
   "require": {
     "ext-posix": "*",
     "ext-curl": "*",

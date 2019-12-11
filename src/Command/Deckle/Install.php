@@ -38,6 +38,8 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->error('This feature is not stable yet, sorry!');
+        return 1;
         $fs = new Filesystem();
         $this->output = $output;
         $this->input = $input;

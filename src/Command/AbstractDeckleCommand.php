@@ -4,7 +4,7 @@
 namespace Adimeo\Deckle\Command;
 
 
-use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Config\DeckleConfig;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\Config\ConfigManager;
@@ -86,8 +86,8 @@ abstract class AbstractDeckleCommand extends Command
     public function loadProjectConfig()
     {
         $configFiles = [
-            Install::DECKLE_HOME . '/deckle.conf.yml',
-            Install::DECKLE_HOME . '/deckle.local.yml',
+            InstallMacOs::DECKLE_HOME . '/deckle.conf.yml',
+            InstallMacOs::DECKLE_HOME . '/deckle.local.yml',
             './deckle/deckle.yml',
             './deckle.local.yml'
         ];
@@ -500,8 +500,51 @@ abstract class AbstractDeckleCommand extends Command
 
     }
 
+    protected function findVmAddress()
+    {
+        $ip = null;
+        $guessers[] = [$this, 'findVmAddressFromVBoxManage'];
+        $guessers[] = [$this, 'findVmAddressInHosts'];
+        foreach($guessers as $guesser) {
+            if($ip = $guesser()) return $ip;
+        }
+
+        return null;
+    }
+
+    protected function findVmAddressFromVBoxManage()
+    {
+        if($this->output->isVerbose()) $this->output->writeln('Looking for <info>deckle-vm</info> IP using <info>VBoxManage</info>');
+        if($this->isRunningOnVbox()) {
+            exec('VBoxManage guestproperty enumerate deckle-vm 2>&1', $output);
+
+            foreach($output as $outputLine) {
+                preg_match('/\/VirtualBox\/GuestInfo\/Net\/1\/V4\/IP, value: (\d+\.\d+\.\d+\.\d+)/', $outputLine, $matches);
+                if(isset($matches[1])) {
+                    return $matches[1];
+                }
+            }
+        }
+    }
+
+    protected function isRunningOnVbox()
+    {
+        if($this->isInPath('VBoxManage')) {
+
+            exec('VBoxManage guestproperty enumerate deckle-vm 2>&1', $output);
+
+            foreach($output as $outputLine) {
+                if(strpos($outputLine, 'VBOX_E_OBJECT_NOT_FOUND')) return false;
+            }
+
+            return true;
+
+        } else return false;
+    }
+
     protected function findVmAddressInHosts()
     {
+        if($this->output->isVerbose()) $this->output->writeln('Looking for <info>deckle-vm</info> in <info>/etc/hosts</info>');
         $entries = file('/etc/hosts');
         foreach ($entries as $entry) {
             if (strpos(trim($entry), '#') === 0) {
@@ -542,6 +585,13 @@ abstract class AbstractDeckleCommand extends Command
         $question = new ConfirmationQuestion('<question>' . $question . '</question> ' . $defaultChoice, false);
 
         return $helper->ask($this->input, $this->output, $question);
+    }
+
+    protected function isInPath($binary)
+    {
+        $output = shell_exec('which ' . $binary);
+
+        return (bool)$output;
     }
 
 }

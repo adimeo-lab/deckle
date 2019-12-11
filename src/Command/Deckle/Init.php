@@ -40,40 +40,6 @@ class Init extends AbstractDeckleCommand
             $this->error('Unable to init "%s" projects.', [$type]);
         }
 
-
-        // process template before triggering project specific init process
-        $templateContent = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('./deckle/.template'));
-
-        while($templateContent->valid()) {
-
-            if (!$templateContent->isDot()) {
-
-                $source = $templateContent->key();
-                $targetDirectory = './deckle/' . $templateContent->getSubPath();
-                $targetFile = './deckle/' . $templateContent->getSubPathName();
-
-                if($this->output->isVerbose()) $this->output->writeln(sprintf('Creating target directory "<info>%s</info>"', $targetDirectory));
-                if(!is_dir($targetDirectory)) mkdir($targetDirectory, 0755, true);
-
-                if($this->output->isVerbose()) $this->output->writeln(sprintf('Copying "<info>%s</info>" to "<info>%s</info>"', $source, $targetFile));
-                $fileInfo = new \SplFileInfo($source);
-                // return mime type ala mimetype extension
-                $finfo = finfo_open(FILEINFO_MIME);
-                //check to see if the mime-type starts with 'text'
-                $binary = substr(finfo_file($finfo, $source), 0, 4) != 'text';
-                if(!$binary) {
-                    $this->copyTemplateFile($source, $targetFile, true,
-                        ['conf<project.name>', 'conf<app.port>']);
-                } else {
-                    copy($source, $targetFile);
-                }
-
-
-            }
-
-            $templateContent->next();
-        }
-
         $command->setProjectConfig($this->getProjectConfig());
         $arguments = [
             'command' => $initCommand
@@ -81,25 +47,6 @@ class Init extends AbstractDeckleCommand
 
         $input = new ArrayInput($arguments);
         $command->run($input, $output);
-
-        /*
-        $deckleDirectory = new \RecursiveDirectoryIterator('./deckle');
-        $deckleFiles = new \RecursiveIteratorIterator($deckleDirectory);
-        $output->writeln('<info>Listing files in ' . $deckleDirectory->getPath() . '</info>');
-        */
-        /** @var \SplFileInfo $deckleFile */
-        /*
-        foreach ($deckleFiles as $deckleFile) {
-            if ($deckleFile->isDir() || strpos($deckleFile->getPath(), '.template')) {
-                if($output->isVerbose()) {
-                    $output->writeln('Skipping <comment>' . $deckleFile->getPathname() . '</comment>');
-                }
-                continue;
-            }
-
-            $output->writeln($deckleFile->getPath());
-        }
-        */
     }
 
 }

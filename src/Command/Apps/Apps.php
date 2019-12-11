@@ -5,12 +5,13 @@ namespace Adimeo\Deckle\Command\Apps;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
-use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Command\Deckle\InstallMacOs;
+use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class Apps extends AbstractDeckleCommand
+class Apps extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
 
 
@@ -29,7 +30,7 @@ class Apps extends AbstractDeckleCommand
         $host = $config['vm']['host'] ?? null;
         $user = $config['vm']['user'] ?? null;
         if(!$host || !$user) {
-            $this->error('No Deckle VM configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [Install::DECKLE_HOME]);
+            $this->error('No Deckle VM configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
         }
 
         $apps = $input->getArgument('app');
@@ -72,7 +73,7 @@ class Apps extends AbstractDeckleCommand
                 if($this->confirm('Rebuilding an app can lead to data loss in your container. Are you sure you want to do this?')) {
                     foreach ($apps as $app) {
                         $output->writeln('Rebuilding app <info>' . $app . '</info>');
-                        $this->ssh('docker-compose up --build --force-recreate -d', '~/apps/' . $app);
+                        $this->ssh('docker-compose up --build --force-recreate -d --remove-orphans', '~/apps/' . $app);
                     }
                 }
                 break;
@@ -88,6 +89,16 @@ class Apps extends AbstractDeckleCommand
                 foreach($apps as $app) {
                     $output->writeln('Restarting app <info>' . $app . '</info>');
                     $this->ssh('docker-compose restart', '~/apps/' . $app);
+                }
+                break;
+
+            case 'status':
+                foreach($apps as $app) {
+                    $output->writeln('Reporting status of app <info>' . $app . '</info>');
+                    $this->ssh('docker-compose ps', '~/apps/' . $app);
+                    $output->writeln(implode("\n", $this->getLastSshCommandOutput()));
+                    $output->writeln('');
+
                 }
                 break;
         }

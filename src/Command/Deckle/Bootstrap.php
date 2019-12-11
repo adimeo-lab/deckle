@@ -12,6 +12,7 @@ use Adimeo\Deckle\Exception\DeckleException;
 use Hoa\File\SplFileInfo;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -55,9 +56,10 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
                 if (!$template) {
                     $command = $this->getApplication()->find('templates:list');
-                    $command->run($input, $output);
+                    $command->run(new ArrayInput([]), $output);
                 }
             }
+
 
             // TODO sanitize project name
             $this->setProjectConfig(['project'=>
@@ -116,7 +118,38 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
             // process template files
 
+            // process template before triggering project specific init process
+            $templateContent = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('./deckle/.template'));
 
+            while($templateContent->valid()) {
+
+                if (!$templateContent->isDot()) {
+
+                    $source = $templateContent->key();
+                    $targetDirectory = './deckle/' . $templateContent->getSubPath();
+                    $targetFile = './deckle/' . $templateContent->getSubPathName();
+
+                    if($this->output->isVerbose()) $this->output->writeln(sprintf('Creating target directory "<info>%s</info>"', $targetDirectory));
+                    if(!is_dir($targetDirectory)) mkdir($targetDirectory, 0755, true);
+
+                    if($this->output->isVerbose()) $this->output->writeln(sprintf('Copying "<info>%s</info>" to "<info>%s</info>"', $source, $targetFile));
+
+                    // return mime type ala mimetype extension
+                    $finfo = finfo_open(FILEINFO_MIME);
+                    //check to see if the mime-type starts with 'text'
+                    $binary = substr(finfo_file($finfo, $source), 0, 4) != 'text';
+                    if(!$binary) {
+                        $this->copyTemplateFile($source, $targetFile, true,
+                            ['conf<project.name>']);
+                    } else {
+                        copy($source, $targetFile);
+                    }
+
+
+                }
+
+                $templateContent->next();
+            }
 
 
             file_put_contents('deckle/.template/.deckle.lock', $provider . ':' . $template);

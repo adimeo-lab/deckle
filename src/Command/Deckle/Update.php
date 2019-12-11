@@ -35,7 +35,7 @@ class Update extends AbstractDeckleCommand
         $fs = new Filesystem();
         $this->output = $output;
         $this->input = $input;
-        $target = $this->expandTilde(Install::DECKLE_HOME);
+        $target = $this->expandTilde(InstallMacOs::DECKLE_HOME);
 
         if (!is_dir($target)) {
             throw new ConfigException(['No config found in "%s". You probably should reinstall Deckle', $target]);

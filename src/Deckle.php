@@ -12,6 +12,7 @@ use Adimeo\Deckle\Command\Deckle\DbImport;
 use Adimeo\Deckle\Command\Deckle\Info;
 use Adimeo\Deckle\Command\Deckle\Init;
 use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Command\Deckle\PushDockerConfig;
 use Adimeo\Deckle\Command\Deckle\Selfupdate;
 use Adimeo\Deckle\Command\Deckle\TemplatesList;
@@ -111,12 +112,12 @@ class Deckle extends Application
         $commands = [
             // Deckle
             Bootstrap::class,
-            Clear::class,
             Config::class,
             DbImport::class,
             Info::class,
             Init::class,
             Install::class,
+            InstallMacOs::class,
             PushDockerConfig::class,
             TemplatesList::class,
             Update::class,

@@ -4,7 +4,7 @@
 namespace Adimeo\Deckle\Command\Helper;
 
 
-use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Exception\Config\ConfigException;
 use Adimeo\Deckle\Exception\DeckleException;
 use Symfony\Component\Console\Input\InputInterface;
@@ -23,7 +23,7 @@ trait TemplatesHelper
 
     protected function getTemplatesDirectory()
     {
-        return  $this->expandTilde(Install::DECKLE_HOME);
+        return  $this->expandTilde(InstallMacOs::DECKLE_HOME);
     }
 
     protected function cacheTemplates()
@@ -91,7 +91,7 @@ trait TemplatesHelper
             if($this->getName() !== 'install') {
                 throw new ConfigException([
                     'deckle.conf.yml was not found in "%s" folder. You may need to reinstall Deckle.',
-                    Install::DECKLE_HOME
+                    InstallMacOs::DECKLE_HOME
                 ]);
             }
         }
@@ -99,7 +99,7 @@ trait TemplatesHelper
 
     protected function getDeckleHomeDirectory()
     {
-        return $this->expandTilde(Install::DECKLE_HOME);
+        return $this->expandTilde(InstallMacOs::DECKLE_HOME);
     }
 
     public function resolveTemplateProvider($template) {
@@ -107,7 +107,7 @@ trait TemplatesHelper
         $providers = $conf['providers'] ?? [];
 
         $cwd = getcwd();
-        chdir($this->expandTilde(Install::DECKLE_HOME));
+        chdir($this->expandTilde(InstallMacOs::DECKLE_HOME));
 
         foreach($providers as $provider) {
             $path = 'cache/' . $this->sanitizeProviderName($provider) . '/' . $template;
@@ -142,7 +142,7 @@ trait TemplatesHelper
         }
 
         $cwd = getcwd();
-        chdir($this->expandTilde(Install::DECKLE_HOME));
+        chdir($this->expandTilde(InstallMacOs::DECKLE_HOME));
 
         foreach($providers as $provider) {
             $path = 'cache/' . $this->sanitizeProviderName($provider) . '/' . $template;

@@ -47,7 +47,7 @@ class TemplatesList extends AbstractDeckleCommand implements ProjectIndependantC
                     if (!$template->isDir() || $template->isDot()) {
                         continue;
                     }
-                    $output->writeln("\t<info>" . $vendor->getBasename() . '/' . $template->getBasename());
+                    $output->writeln("\t<info>" . $vendor->getBasename() . '/' . $template->getBasename() );
                 }
             }
         }

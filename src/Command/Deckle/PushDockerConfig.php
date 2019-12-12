@@ -25,16 +25,18 @@ class PushDockerConfig extends AbstractDeckleCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
 
-        $output->writeln(sprintf('Pushing <comment>deckle/docker</comment> to <comment>%s</comment> on development VM', $this->projectConfig['docker']['path']));
         // check if project already exists
         // TODO find another way to test directory existence silently!
 
-        $return = $this->ssh('ls ' . $this->projectConfig['docker']['path'] . ' &> /dev/null ');
-
+        $return = $this->ssh('ls ' . $this->projectConfig['docker']['path'] . ' 2>&1');
 
         if(!$return) {
             if(!$input->getOption('reset')) {
-                $this->error('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
+                if($input->isInteractive()) {
+                    $this->error('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
+                } else {
+                    return 0;
+                }
             }
              else {
                  // delete remote environment
@@ -46,6 +48,7 @@ class PushDockerConfig extends AbstractDeckleCommand
         }
 
         // copy Docker configuration to remote environment
+        $output->writeln(sprintf('Pushing <comment>deckle/docker</comment> to <comment>%s</comment> on development VM', $this->projectConfig['docker']['path']));
         $this->scp('deckle/docker', $this->projectConfig['docker']['path']);
 
 

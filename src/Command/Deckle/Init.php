@@ -41,11 +41,7 @@ class Init extends AbstractDeckleCommand
         }
 
         $command->setProjectConfig($this->getProjectConfig());
-        $arguments = [
-            'command' => $initCommand
-        ];
 
-        $input = new ArrayInput($arguments);
         $command->run($input, $output);
     }
 

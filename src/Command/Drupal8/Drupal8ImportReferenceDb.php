@@ -14,6 +14,7 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
     protected function configure()
     {
         $this->setName('drupal8:db:import')
+            ->setHidden(true)
             ->setDescription('Import db from reference server to dev environment');
     }
 

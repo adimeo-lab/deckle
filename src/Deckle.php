@@ -9,6 +9,7 @@ use Adimeo\Deckle\Command\Deckle\Bootstrap;
 use Adimeo\Deckle\Command\Deckle\Clear;
 use Adimeo\Deckle\Command\Deckle\Config;
 use Adimeo\Deckle\Command\Deckle\DbImport;
+use Adimeo\Deckle\Command\Deckle\Down;
 use Adimeo\Deckle\Command\Deckle\Info;
 use Adimeo\Deckle\Command\Deckle\Init;
 use Adimeo\Deckle\Command\Deckle\Install;
@@ -16,6 +17,7 @@ use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Command\Deckle\PushDockerConfig;
 use Adimeo\Deckle\Command\Deckle\Selfupdate;
 use Adimeo\Deckle\Command\Deckle\TemplatesList;
+use Adimeo\Deckle\Command\Deckle\Up;
 use Adimeo\Deckle\Command\Deckle\Update;
 use Adimeo\Deckle\Command\Deckle\Version;
 use Adimeo\Deckle\Command\Docker\Compose;
@@ -122,7 +124,8 @@ class Deckle extends Application
             TemplatesList::class,
             Update::class,
             Selfupdate::class,
-            Version::class,
+            Up::class,
+            Down::class,
 
             // Docker
             Compose::class,

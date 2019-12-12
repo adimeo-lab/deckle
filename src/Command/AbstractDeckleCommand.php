@@ -319,7 +319,7 @@ abstract class AbstractDeckleCommand extends Command
         }
 
         $command = escapeshellarg($command);
-        $sshCommand = 'ssh ' . $user . '@' . $host . ' ' . $command;
+        $sshCommand = 'ssh -oStrictHostKeyChecking=accept-new ' . $user . '@' . $host . ' ' . $command;
         if ($this->output->isVeryVerbose()) {
             $this->output->writeln('About to execute SSH command: <comment>' . $sshCommand . '</comment>');
         }

@@ -44,7 +44,6 @@ class Mutagen extends AbstractDeckleCommand
         switch($cmd = $input->getArgument('cmd')) {
 
             case 'start-or-restart':
-                dump('start-or-restart');
                 if($running) {
                     $cmd = 'restart';
                 } else {

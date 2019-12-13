@@ -98,11 +98,9 @@ abstract class AbstractDeckleCommand extends Command
             './deckle.local.yml'
         ];
 
-
         if ($extraConfigurationFiles = $this->input->getOption('config-file')) {
             $configFiles = array_merge($configFiles, $extraConfigurationFiles);
         }
-
 
         if ($this->output->isVerbose()) {
             $this->output->writeln("Importing configuration files");
@@ -127,13 +125,15 @@ abstract class AbstractDeckleCommand extends Command
             }
         }
 
-        if (!$loadedFiles) {
-            $this->error('No deckle config file found!');
-            exit;
-        }
+        if(!$this instanceof ProjectIndependantCommandInterface) {
+            if (!$loadedFiles) {
+                $this->error('No deckle config file found!');
+                exit;
+            }
 
-        if (!isset($conf['project']['name'])) {
-            $this->error('Missing project name in configuration!');
+            if (!isset($conf['project']['name'])) {
+                $this->error('Missing project name in configuration!');
+            }
         }
 
         // add default values
@@ -591,7 +591,7 @@ abstract class AbstractDeckleCommand extends Command
     {
         $helper = $this->getHelper('question');
         $defaultChoice = ($default) ? '[Yn]' : '[yN]';
-        $question = new ConfirmationQuestion('<question>' . $question . ' ' . $defaultChoice . '</question> ', false);
+        $question = new ConfirmationQuestion('<question>' . $question . ' ' . $defaultChoice . '</question> ', $default);
 
         return $helper->ask($this->input, $this->output, $question);
     }

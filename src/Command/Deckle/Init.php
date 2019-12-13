@@ -20,7 +20,7 @@ class Init extends AbstractDeckleCommand
     {
         parent::configure();
         $this->setName('init')
-            ->setDescription('Process configuration files')
+            ->setDescription('Set up your local Deckle project')
             ->addOption('reset', null, InputOption::VALUE_NONE, 'Overwrite previously processed files');
     }
 

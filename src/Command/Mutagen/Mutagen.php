@@ -8,20 +8,31 @@ use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Exception\DeckleException;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Output\ConsoleSectionOutput;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class Mutagen extends AbstractDeckleCommand
 {
+    /**
+     * @var OutputInterface
+     */
+    protected $actualOutput;
+
     protected function configure()
     {
         $this->setName('mutagen:sync')
             ->setAliases(['sync'])
         ->setDescription('Wrapper for mutagen')
-        ->addArgument('cmd', InputArgument::REQUIRED, 'mutagen operation to execute');
+        ->addArgument('cmd', InputArgument::REQUIRED, 'mutagen operation to execute')
+            ;
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $this->actualOutput = $output;
+
         if(!is_file('deckle/mutagen.yml')) {
             $this->error('No deckle/mutagen.yml file was found. Cannot control mutagen for this project.');
         }
@@ -29,7 +40,16 @@ class Mutagen extends AbstractDeckleCommand
 
         $running = $this->isRunning();
 
+
         switch($cmd = $input->getArgument('cmd')) {
+
+            case 'start-or-restart':
+                dump('start-or-restart');
+                if($running) {
+                    $cmd = 'restart';
+                } else {
+                    $cmd = 'start';
+                }
 
             case 'restart':
                 if($running) {
@@ -40,6 +60,7 @@ class Mutagen extends AbstractDeckleCommand
                     $this->output->writeln('<info>mutagen</info> session(s) not running. Starting sessions...');
                     $cmd = 'start';
                 }
+                
 
             case 'start':
                 if($running) {
@@ -62,6 +83,13 @@ class Mutagen extends AbstractDeckleCommand
 
 
             case 'monitor':
+                $this->monitorSessions();
+                break;
+
+            case 'monitor-until-synced':
+                $this->monitorSessions(true);
+                break;
+
             case 'status':
                 $this->displayStatus($output->isVerbose());
                 break;
@@ -69,6 +97,59 @@ class Mutagen extends AbstractDeckleCommand
             default:
                 $this->error('Unknown mutagen operation "%s"', [$cmd]);
                 break;
+        }
+    }
+
+    protected function monitorSessions($untilSynced = false) {
+
+
+        if(!$this->isRunning()) {
+            $this->output->writeln("<info>mutagen</info> seems not to be running. Run <comment>deckle sync start</comment> to start your synchronisation sessions.");
+        }
+
+        $sections = [];
+
+        $firstLoop = true;
+        $frequency = 1;
+
+        $consoleOutput = new ConsoleOutput();
+
+        while($this->isRunning()) {
+            $synced = [];
+            $sessions = $this->fetchSessionsStatus();
+            foreach ($sessions as $session => $info) {
+                $synced[$session] = $info['Status'] == 'Watching for changes';
+                if(!isset($sections[$session])) {
+                    $sections[$session] = $consoleOutput->section();
+                    $sections[$session]->writeLn('Fetching session <info>' . $session . '</info> status...');
+                }
+                $section = $sections[$session];
+                $section->overwrite(sprintf('Session <info>%s</info>: ' . "     \t" . '<comment>%s</comment>',
+                    $session, $info['Status']));
+            }
+
+            if($untilSynced && count(array_filter($synced)) == count($synced)) {
+                $message = PHP_EOL . '<info>All sessions are now synced. Exiting monitor...</info>';
+                if(isset($infoSection)) $infoSection->overwrite($message);
+                else $this->output->writeln($message);
+                return;
+            };
+
+            if($firstLoop) {
+                $infoSection = $consoleOutput->section();
+                if($untilSynced) {
+                    $message = 'Monitoring Mutagen sessions until they are all synced. Please wait...';
+                } else {
+                    $message = 'Monitoring Mutagen sessions every <info>' . $frequency . '</info> second. Hit Ctrl+C to stop monitoring Mutagen.';
+                }
+                $infoSection->overwrite(PHP_EOL . $message);
+
+                $firstLoop = false;
+            }
+
+
+
+            sleep($frequency);
         }
     }
 
@@ -185,5 +266,42 @@ class Mutagen extends AbstractDeckleCommand
         }
 
         return $syncSessions;
+    }
+
+    protected function monitorSession(string $sessionName)
+    {
+        if (!$this->isRunning()) {
+            $this->halt("<info>mutagen</info> seems not to be running. Run <comment>deckle sync start</comment> to start your synchronisation sessions.");
+        }
+
+
+        /** @var ConsoleSectionOutput $section */
+        $section = $this->actualOutput->section();
+        $section->writeln('fetching mutagen status...');
+
+        while($session = $this->resolveSessionName($sessionName)) {
+            $sessions = $this->fetchSessionsStatus();
+            $info = $sessions[$session];
+            $section->overwrite(sprintf('Session <info>%s</info>: ' . "     \t" . '<comment>%s</comment>', $session, $info['Status']));
+        };
+
+        if($session) {
+            $this->error(['Mutagen session <info>%s</info> appears to be gone...'], [$session]);
+        } else {
+            $this->error(['No Mutagen session matches <info>%s</info>'], [$sessionName]);
+        }
+    }
+
+    protected function resolveSessionName($sessionName)
+    {
+        $sessions = $this->fetchSessionsStatus();
+
+        foreach ($sessions as $session => $info) {
+            if (preg_match('/' . str_replace('*', '.*', $sessionName) . '/', $session)) {
+                return $session;
+            }
+        }
+
+        return null;
     }
 }

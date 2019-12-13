@@ -16,6 +16,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Class AbstractDeckleCommand
@@ -33,7 +34,7 @@ abstract class AbstractDeckleCommand extends Command
      */
     protected $input;
     /**
-     * @var OutputInterface
+     * @var SymfonyStyle
      */
     protected $output;
 
@@ -46,6 +47,11 @@ abstract class AbstractDeckleCommand extends Command
      * @var string
      */
     protected $lastSshCommandOutput;
+
+    /**
+     * @var SymfonyStyle
+     */
+    protected $style;
 
     /**
      * AbstractDeckleCommand constructor.
@@ -67,7 +73,7 @@ abstract class AbstractDeckleCommand extends Command
     public function initialize(InputInterface $input, OutputInterface $output)
     {
         $this->input = $input;
-        $this->output = $output;
+        $this->output = new SymfonyStyle($input, $output);
 
         if (!$this instanceof ProjectIndependantCommandInterface) {
             if (!is_dir('./deckle')) {
@@ -126,30 +132,16 @@ abstract class AbstractDeckleCommand extends Command
             exit;
         }
 
-        /*
-        if (isset($conf['project']['extra_' . $this->getEnv() . '_configuration'])) {
-            $extraConfigurationFiles = $conf['project']['extra_' . $this->getEnv() . '_configuration'];
-            foreach ($extraConfigurationFiles as $file) {
-                if ($this->output->isVerbose()) {
-                    $this > $this->output->writeln("\tImporting extra configuration file <comment>" . $file . "</comment>");
-                }
-                $extra = $this->configManager->load($file);
-                $conf = $this->configManager->merge($conf, $extra);
-            }
+        if (!isset($conf['project']['name'])) {
+            $this->error('Missing project name in configuration!');
         }
-        */
 
         // add default values
-        if (!isset($conf['project']['name'])) {
-            $conf['project'] = [];
-            $conf['project']['name'] = strtolower(basename(getcwd()));
-        }
-
         if (!isset($conf['docker']['host'])) {
             if (!isset($conf['docker'])) {
                 $conf['docker'] = [];
             }
-            $conf['docker']['host'] = getenv('DOCKER_HOST') ?? 'localhost:4243';
+            $conf['docker']['host'] = getenv('DOCKER_HOST') ?? 'deckle-vm:4243';
         }
 
         try {
@@ -319,11 +311,9 @@ abstract class AbstractDeckleCommand extends Command
         }
 
         $command = escapeshellarg($command);
-        $sshCommand = 'ssh -oStrictHostKeyChecking=accept-new ' . $user . '@' . $host . ' ' . $command;
-        if ($this->output->isVeryVerbose()) {
-            $this->output->writeln('About to execute SSH command: <comment>' . $sshCommand . '</comment>');
-        }
-        exec($sshCommand, $output, $return);
+        $sshCommand = 'ssh ' . $user . '@' . $host . ' ' . $command;
+
+        $return = $this->call($sshCommand, $output);
         $this->lastSshCommandOutput = $output;
 
         return $return;
@@ -409,7 +399,7 @@ abstract class AbstractDeckleCommand extends Command
      * @param string $lastSshCommandOutput
      * @return AbstractDeckleCommand
      */
-    public function setLastSshCommandOutput(array $lastSshCommandOutput): AbstractDeckleCommand
+    protected function setLastSshCommandOutput(array $lastSshCommandOutput): AbstractDeckleCommand
     {
         $this->lastSshCommandOutput = $lastSshCommandOutput;
         return $this;
@@ -444,14 +434,32 @@ abstract class AbstractDeckleCommand extends Command
         $displayedMessage = vsprintf($message, $vars);
 
         $this->output->writeln('');
-        $this->output->writeln('An error occurred:');
-        $this->output->writeln("\t" . '<error>' . $displayedMessage . '</error>');
+        $this->output->write('An error occurred: ');
+        $this->output->writeln('<error>' . $displayedMessage . '</error>');
         $this->output->writeln('');
-        if ($this->output->getVerbosity() > OutputInterface::VERBOSITY_NORMAL) {
+
+        if ($this->output->isVeryVerbose()) {
             $e = new DeckleException($exceptionParams);
             throw $e;
         }
+        exit;
+    }
 
+    protected function halt($message, array $vars = [])
+    {
+        $messageParams = $vars;
+
+        array_walk($messageParams, function (&$param) {
+            $param = '<info>' . $param . '</info>';
+        });
+        $message = implode(PHP_EOL, (array) $message);
+        $displayedMessage = vsprintf($message, $vars);
+
+        $this->output->writeln('');
+        $this->output->warning($displayedMessage);
+        $this->output->writeln('');
+
+        exit(0);
     }
 
     /**
@@ -514,7 +522,7 @@ abstract class AbstractDeckleCommand extends Command
 
     protected function findVmAddressFromVBoxManage()
     {
-        if($this->output->isVerbose()) $this->output->writeln('Looking for <info>deckle-vm</info> IP using <info>VBoxManage</info>');
+        if($this->output->isVeryVerbose()) $this->output->writeln('Looking for <info>deckle-vm</info> IP using <info>VBoxManage</info>');
         if($this->isRunningOnVbox()) {
             exec('VBoxManage guestproperty enumerate deckle-vm 2>&1', $output);
 
@@ -578,11 +586,12 @@ abstract class AbstractDeckleCommand extends Command
         return $version;
     }
 
-    protected function confirm($question, $default = 'n') : bool
+
+    protected function confirm($question, bool $default = false) : bool
     {
         $helper = $this->getHelper('question');
-        $defaultChoice = $default == 'n' ? 'yN' : 'Yn';
-        $question = new ConfirmationQuestion('<question>' . $question . '</question> ' . $defaultChoice, false);
+        $defaultChoice = ($default) ? '[Yn]' : '[yN]';
+        $question = new ConfirmationQuestion('<question>' . $question . ' ' . $defaultChoice . '</question> ', false);
 
         return $helper->ask($this->input, $this->output, $question);
     }
@@ -592,6 +601,45 @@ abstract class AbstractDeckleCommand extends Command
         $output = shell_exec('which ' . $binary);
 
         return (bool)$output;
+    }
+
+    /**
+     * Helper to ease handling working directory in system calls
+     *
+     * @param $wd
+     * @param $command
+     * @param bool $silent
+     * @param null $output
+     * @return mixed
+     */
+    protected function callFrom($wd, $command, &$output = null, $silent = true)
+    {
+        return $this->call($command, $output, $silent, $wd);
+    }
+    protected function call(string $command, &$output = null, $silent = true, $wd = '.')
+    {
+        if ($silent && !$this->output->isVerbose()) {
+            $silence = ' 2>&1';
+        } else {
+            $silence = '';
+        }
+
+        if($wd != '.') {
+            $cwd = 'cd ' . $wd . ' && ';
+        } else {
+            $cwd = '';
+        }
+
+        if($this->output->isVeryVerbose()) {
+            $this->output->writeln(sprintf('Executing <info>%s</info> in <info>%s</info>', $command, $wd));
+        }
+        if($silence) {
+            exec($cwd . $command . $silence, $output, $return);
+        } else {
+            system($cwd . $command, $return);
+        }
+
+        return $return;
     }
 
 }

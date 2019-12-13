@@ -15,7 +15,7 @@ class AddKnownHost extends AbstractDeckleCommand implements ProjectIndependantCo
 {
     protected function configure()
     {
-        $this->setName('vm:host:add')
+        $this->setName('vm:ssh:add-host')
             ->setDescription('Add given host to known hosts')
             ->setHidden(true)
         ->addArgument('host', InputArgument::REQUIRED, 'Host to add to ~/.ssh/known_hosts');

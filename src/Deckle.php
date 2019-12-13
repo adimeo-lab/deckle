@@ -30,6 +30,7 @@ use Adimeo\Deckle\Command\Drupal8\GenerateLocalSettings;
 use Adimeo\Deckle\Command\Mutagen\Mutagen;
 use Adimeo\Deckle\Command\Php\Cli;
 use Adimeo\Deckle\Command\Php\Composer;
+use Adimeo\Deckle\Command\Vagrant\Vagrant;
 use Adimeo\Deckle\Command\Vm\AddKnownHost;
 use Adimeo\Deckle\Command\Vm\Ip;
 use Adimeo\Deckle\Command\Vm\Ssh;
@@ -130,6 +131,9 @@ class Deckle extends Application
             // Docker
             Compose::class,
             Shell::class,
+
+            // Vagrant
+            Vagrant::class,
 
             // Drupal8
             Drupal::class,

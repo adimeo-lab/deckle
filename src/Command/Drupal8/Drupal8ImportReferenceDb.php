@@ -28,7 +28,7 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
             // complete with settings.local.php from reference if needed
             $this->fillConfigFromReferenceSettings($config);
 
-            if(empty(    $config['reference']['db']['database'])) {
+            if(empty($config['reference']['db']['database'])) {
                 $this->error('Looks like Deckle failed retrieving complete reference DB configuration (missing at least "database" name!)');
             }
 
@@ -106,10 +106,10 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
 
         $scpCommand = 'scp ' . $user . '@' . $host . ':"' . $source . '" "' . $target . '"';
 
-        system($scpCommand);
+        $this->call($scpCommand);
 
         try {
-            if(!file_get_contents($target)) {
+            if(!is_file($target)) {
                 throw new \Exception('Unable to fetch remote settings.local.php content');
             }
             require $target;

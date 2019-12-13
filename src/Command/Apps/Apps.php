@@ -20,7 +20,7 @@ class Apps extends AbstractDeckleCommand implements ProjectIndependantCommandInt
         $this->setName('apps')
             ->addArgument('action', InputArgument::OPTIONAL, 'Action to perform on apps (start, stop, restart, rebuild', 'list')
             ->addArgument('app', InputArgument::IS_ARRAY, 'App(s) to perform action against. Default: all available apps')
-            ->setDescription('Open a SSH session to your dev VM');
+            ->setDescription('Manage apps installed in Deckle VM');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)

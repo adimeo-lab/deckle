@@ -18,7 +18,7 @@ class PushDockerConfig extends AbstractDeckleCommand
 
         $this->setName('push')
             ->addOption('reset', null, InputOption::VALUE_NONE, 'Delete existing remote files if exist')
-            ->setDescription('Push deckle/docker configuration files to dev VM')
+            ->setDescription('Push deckle/docker configuration files to Deckle VM')
         ;
     }
 
@@ -33,7 +33,7 @@ class PushDockerConfig extends AbstractDeckleCommand
         if(!$return) {
             if(!$input->getOption('reset')) {
                 if($input->isInteractive()) {
-                    $this->error('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
+                    $this->halt('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
                 } else {
                     return 0;
                 }

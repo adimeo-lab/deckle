@@ -33,8 +33,6 @@ class Update extends AbstractDeckleCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $fs = new Filesystem();
-        $this->output = $output;
-        $this->input = $input;
         $target = $this->expandTilde(InstallMacOs::DECKLE_HOME);
 
         if (!is_dir($target)) {

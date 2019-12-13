@@ -34,8 +34,10 @@ class Ssh extends AbstractDeckleCommand implements ProjectIndependantCommandInte
         if($cmd = $input->getArgument('cmd')) {
             $cwd = $input->getOption('working-directory') ?? "~";
             $this->ssh($cmd, $cwd, $host, $user);
-            $output->writeln('<info>SSH command output:</info>');
-            $output->writeln(implode("\n", $this->getLastSshCommandOutput()));
+            if($output->isVerbose()) {
+                $output->writeln('<info>SSH command output:</info>');
+                $output->writeln(implode("\n", $this->getLastSshCommandOutput()));
+            }
         } else {
             $output->writeln('Opening a SSH session to <info>' . $user . '</info>@<info>' . $host . '</info> ...');
             passthru('ssh ' . $user . '@' . $host);

@@ -32,22 +32,23 @@ trait TemplatesHelper
         $repositories = $conf['providers'] ?? [];
 
         if (!$repositories) {
-            $this->output->writeln('<comment>No providers are defined in Deckle configuration</comment>');
+            $this->getStyle()->warning('<comment>No providers are defined in Deckle configuration</comment>');
         } else {
+            $this->output->writeln('Fetching <info>templates</info>');
             foreach ($repositories as $repository) {
 
                 $targetRepository = $this->sanitizeProviderName($repository);
 
                 if (!is_dir($targetRepository)) {
-                    $this->output->writeln('Cloning <info>' . $repository . '</info> in <info>' . $targetRepository . '</info>');
+                    if($this->output->isVerbose()) $this->output->writeln('Cloning <info>' . $repository . '</info> in <info>' . $targetRepository . '</info>');
                     $operation = 'cloning';
-                    exec('git clone ' . escapeshellarg($repository) . ' ' . $targetRepository . ' 2>&1', $output, $errno);
+                    $errno = $this->call('git clone ' . escapeshellarg($repository) . ' ' . $targetRepository, $output);
 
                 } else {
-                    $this->output->writeln('<info>Updating <info>' . $repository . '</info>');
+                    if($this->output->isVerbose()) $this->output->writeln('Updating <info>' . $repository . '</info>');
                     $operation = 'pulling';
                     chdir($targetRepository);
-                    system('git pull 2>&1', $errno);
+                    $errno = $this->call('git pull 2>&1', $output);
                     chdir('..');
                 }
 
@@ -60,7 +61,7 @@ trait TemplatesHelper
                     ]);
                 }
             }
-            $this->output->writeln('Done ' . $operation . ' repositories!');
+
         }
 
     }

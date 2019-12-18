@@ -14,17 +14,17 @@ class Ip extends AbstractDeckleCommand implements ProjectIndependantCommandInter
     protected function configure()
     {
         $this->setName('vm:ip')
-            ->setDescription('Display Deckle VM IP address');
+            ->setDescription('Display Deckle Machine IP address');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $ip = $this->findVmAddress();
+        $ip = $this->vm()->ip();
         if(!$ip) {
-            $this->error('Unable to extract your Deckle VM IP address from your /etc/hosts file. Please ensure have entry for <comment>deckle-vm</comment> in this file.');
+            $this->error('Unable to extract your Deckle Machine IP address from your /etc/hosts file. Please ensure have entry for <comment>deckle-vm</comment> in this file.');
         }
 
-        $output->writeln(sprintf('Your Deckle VM IP address is <info>%s</info>', $ip));
+        $output->writeln(sprintf('Your Deckle Machine IP address is <info>%s</info>', $ip));
     }
 
 }

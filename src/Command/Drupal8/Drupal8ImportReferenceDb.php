@@ -4,8 +4,12 @@
 namespace Adimeo\Deckle\Command\Drupal8;
 
 
+use Adimeo\Deckle\Service\Config\DeckleConfig;
 use Adimeo\Deckle\Service\Misc\ArrayTool;
-use mysql_xdevapi\Exception;
+use Adimeo\Deckle\Service\Shell\Script\Location\AppContainer;
+use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
+use Adimeo\Deckle\Service\Shell\Script\Location\LocalPath;
+use Adimeo\Deckle\Service\Shell\Script\Location\SshHost;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -23,93 +27,57 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
         try {
 
             // fetch config
-            $config = $this->projectConfig;
+            $config = $this->config;
 
-            // complete with settings.local.php from reference if needed
-            $this->fillConfigFromReferenceSettings($config);
 
-            if(empty($config['reference']['db']['database'])) {
-                $this->error('Looks like Deckle failed retrieving complete reference DB configuration (missing at least "database" name!)');
-            }
+            $command = 'vendor/bin/drush sql:dump | gzip > /tmp/deckle-dump.sql.gz';
 
-            $command = sprintf('mysqldump -h%s -u%s -p%s %s > %s-dump.sql',
-                $config['reference']['db']['host'],
-                $config['reference']['db']['username'],
-                $config['reference']['db']['password'],
-                $config['reference']['db']['database'],
-                $config['reference']['db']['database']
-            );
-            $this->ssh($command, '~', $config['reference']['host'], $config['reference']['user']);
+            $output->writeln('Importing database from <info>' . $config['reference']['host'] . '</info>...');
+            $section = $output->section();
 
-            // compress
-            $command = sprintf('gzip %s-dump.sql',
-                $config['reference']['db']['database']
-            );
-            $this->ssh($command, '~', $this->projectConfig['reference']['host'],
-                $this->projectConfig['reference']['user']);
+            $section->overwrite('<comment>Generating dump on remote host...</comment>');
+            $this->sh()->exec($command, new SshHost($config['reference']['host'], $config['reference']['path'], $config['reference']['user']));
+
 
             // fetch dump in vm
-            $command = sprintf('scp %s@%s:%s-dump.sql.gz %s',
-                $config['reference']['user'],
-                $config['reference']['host'],
-                $config['reference']['db']['database'],
-                $config['docker']['path']
-            );
-            $this->ssh($command);
+            $section->overwrite('<comment>Copying dump locally...</comment>');
+            $localDump = tempnam(sys_get_temp_dir(), 'dump_');
+            $this->sh()->scp(new SshHost($config['reference']['host'], '/tmp/deckle-dump.sql.gz', $config['reference']['user']),
+                new LocalPath($localDump));
 
-            // uncompress in VM
-            $command = sprintf('gunzip %s-dump.sql.gz', $config['reference']['db']['database']);
-            $this->ssh($command, $config['docker']['path']);
+            $section->overwrite('<comment>Copying dump in app container...</comment>');
+            $this->sh()->cp(new LocalPath($localDump), new AppContainer($config['app']['path'] . '/deckle-dump.sql.gz'))->isErrored();
+            // import in app
+            $section->overwrite('<comment>Running <info>drush sql:query</info> in container ...</comment>');
+            $command = 'vendor/bin/drush sql:query --file ' . $config['app']['path'] . '/deckle-dump.sql.gz';
+            $this->sh()->exec($command, new AppContainer($config['app']['path']));
 
-            // import in appli
-            $command = sprintf('mysql -h%s -u%s -p%s -e "CREATE SCHEMA IF NOT EXISTS %s;"',
-                '127.0.0.1',
-                $config['db']['username'],
-                $config['db']['password'],
-                $config['db']['database'],
-                $config['db']['database']
-            );
-            $this->ssh($command, $config['docker']['path']);
-
-            $command = sprintf('mysql -h%s -u%s -p%s %s < %s-dump.sql',
-                '127.0.0.1',
-                $config['db']['username'],
-                $config['db']['password'],
-                $config['db']['database'],
-                $config['db']['database']
-            );
-            $this->ssh($command, $config['docker']['path']);
-
+            $section->overwrite('<info>Done!</info>');
         } catch (\Throwable $e) {
             throw $e;
         } finally {
             // delete dump on reference
-            $command = sprintf('rm %s-dump.sql.gz',
-                $config['reference']['db']['database']
-            );
-            $this->ssh($command, '~', $this->projectConfig['reference']['host'],
-                $this->projectConfig['reference']['user']);
-
-            // delete dump on VM
-            $command = sprintf('rm %s-dump.sql', $config['reference']['db']['database']);
-            $this->ssh($command, $config['docker']['path']);
+            $command = '[ -f deckle-dump.sql.gz ] && rm deckle-dump.sql.gz';
+            $this->output->setVerbosity(OutputInterface::VERBOSITY_QUIET);
+            $this->sh()->exec($command, new SshHost($config['reference']['host'], '~', $config['reference']['user']));
+            if(isset($localDump) && file_exists($localDump)) unlink($localDump);
         }
     }
 
-    protected function fillConfigFromReferenceSettings(array &$config)
+    protected function fillConfigFromReferenceSettings(DeckleConfig $config)
     {
 
         $host = $config['reference']['host'];
         $user = $config['reference']['user'];
         $source = $config['reference']['path'] . '/web/sites/default/settings.local.php';
-        $target = tempnam(sys_get_temp_dir(),'reference_');
+        $target = tempnam(sys_get_temp_dir(), 'reference_');
 
-        $scpCommand = 'scp ' . $user . '@' . $host . ':"' . $source . '" "' . $target . '"';
+        // $scpCommand = 'scp ' . $user . '@' . $host . ':"' . $source . '" "' . $target . '"';
 
-        $this->call($scpCommand);
+        $return = $this->sh()->scp(new SshHost($host, $source, $user), new LocalPath($target));
 
         try {
-            if(!is_file($target)) {
+            if ($return->isErrored() || !is_file($target)) {
                 throw new \Exception('Unable to fetch remote settings.local.php content');
             }
             require $target;
@@ -122,11 +90,18 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
             }
         }
 
-        if(!isset($databases)) {
+        if (!isset($databases)) {
             $this->output->writeln('<danger>No database configuration found in reference configuration</danger>');
             return $config;
         } else {
-            $config['reference']['db'] = array_merge($databases['default']['default'], ArrayTool::filterRecursive($config['reference']['db']) ?? []);
+            $updatedConfig = [
+                'reference' => [
+                    'db' => array_merge($databases['default']['default'],
+                        ArrayTool::filterRecursive($config['reference']['db']) ?? [])
+                ]
+            ];
+            $config->hydrate($updatedConfig);
+
         }
     }
 }

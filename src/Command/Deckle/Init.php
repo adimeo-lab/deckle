@@ -31,7 +31,7 @@ class Init extends AbstractDeckleCommand
             $this->error('No "./deckle" folder found. You may need to bootstrap your project.');
         }
 
-        $type = $this->projectConfig['project']['type'];
+        $type = $this->config['project']['type'];
 
         $initCommand = $type . ':init';
         $command = $this->getApplication()->find($initCommand);
@@ -40,7 +40,7 @@ class Init extends AbstractDeckleCommand
             $this->error('Unable to init "%s" projects.', [$type]);
         }
 
-        $command->setProjectConfig($this->getProjectConfig());
+        $command->setConfig($this->getConfig());
 
         $command->run($input, $output);
     }

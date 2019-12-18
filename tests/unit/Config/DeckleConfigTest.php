@@ -4,7 +4,7 @@
 namespace Config;
 
 
-use Adimeo\Deckle\Config\DeckleConfig;
+use Adimeo\Deckle\Service\Config\DeckleConfig;
 use Codeception\PHPUnit\TestCase;
 
 class DeckleConfigTest extends TestCase

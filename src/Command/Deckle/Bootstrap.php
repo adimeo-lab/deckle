@@ -8,8 +8,7 @@ use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Helper\ConfigHelper;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
-use Adimeo\Deckle\Exception\DeckleException;
-use Hoa\File\SplFileInfo;
+use Adimeo\Deckle\Service\Config\DeckleConfig;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -32,8 +31,10 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
         $this->setName('bootstrap')
             ->setDescription('Prepare a project to run with Deckle')
-            ->addOption('reset', null, InputOption::VALUE_NONE, 'Clean any previous deckle project present in current directory. <info>Warning, you may loose data!</info>')
-            ->addArgument('project', InputArgument::REQUIRED, 'Project name. Will be used as db name, container name, etc.')
+            ->addOption('reset', null, InputOption::VALUE_NONE,
+                'Clean any previous deckle project present in current directory. <info>Warning, you may loose data!</info>')
+            ->addArgument('project', InputArgument::REQUIRED,
+                'Project name. Will be used as db name, container name, etc.')
             ->addArgument('template', InputArgument::OPTIONAL,
                 'Deckle template to use to bootstrap your project (syntax: vendor/template)');
     }
@@ -42,16 +43,20 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
     {
 
         // reset config
-        $this->setProjectConfig([]);
+        $config = [
+            'project' =>
+                [
+                    'name' => $input->getArgument('project')
+                ]
+        ];
+        $this->getConfig()->hydrate($config);
 
         // import template into project
         try {
             $template = $input->getArgument('template');
 
             while (!$template) {
-                $helper = $this->getHelper('question');
-                $question = new Question('<question>Please indicate which template to use. Press enter to list available templates.</question>');
-                $template = $helper->ask($input, $output, $question);
+                $template = $this->output->askQuestion(new Question('Please indicate which template to use (press enter to list available templates)'));
 
                 if (!$template) {
                     $command = $this->getApplication()->find('templates:list');
@@ -59,41 +64,30 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
                 }
             }
 
-
-            // TODO sanitize project name
-            $this->setProjectConfig(['project'=>
-                [
-                    'name' => $input->getArgument('project')
-                ]
-            ]);
-
             $this->importTemplate($template);
 
         } catch (\Throwable $e) {
 
-                $this->error($e->getMessage());
+            $this->error($e->getMessage());
         }
     }
 
     protected function importTemplate($template)
     {
         $fs = new Filesystem();
-        $provider = $this->resolveTemplateProvider($template);
-        $helper = $this->getHelper('question');
+        $provider = $this->templates()->resolveTemplateProvider($template);
 
-        $question = new ConfirmationQuestion('Are you sure you want to bootstrap your deckle project using <comment>' . $template . '</comment> from <comment>' . $provider . '</comment> [Y/n]');
-        if (!$helper->ask($this->input, $this->output, $question)) {
+        if (!$this->output->confirm('Are you sure you want to bootstrap your deckle project using <comment>' . $template . '</comment> from <comment>' . $provider . '</comment>')) {
             $this->output->writeln('<info>Aborting</info>');
             return;
         } else {
             if (is_dir('./deckle')) {
 
                 if ($this->input->isInteractive() && !$this->input->getOption('reset')) {
-                    $helper = $this->getHelper('question');
-                    $question = new ConfirmationQuestion('<info>./deckle</info> directory already exists. Do you want to <comment>replace</comment> it selected template ? [y/N]',
-                        false);
-                    $reset = $helper->ask($this->input, $this->output, $question);
-                } else $reset = $this->input->getOption('reset');
+                    $reset = $this->output()->confirm('<comment>./deckle</comment> directory already exists. Do you want to <comment>reset</comment> it using selected template?', false);
+                } else {
+                    $reset = $this->input->getOption('reset');
+                }
 
                 if ($reset) {
                     $fs->remove('./deckle');
@@ -106,18 +100,20 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
         mkdir('./deckle/.template', 0755, true);
         try {
-            if($this->output->isVerbose()) $this->output->writeln('Copying template <info>' . str_replace($this->expandTilde('~'),
-                        '~', $this->resolveTemplatePath($template,
+            if ($this->output->isVerbose()) {
+                $this->output->writeln('Copying template <info>' . str_replace($this->fs()->expandTilde('~'),
+                        '~', $this->templates()->resolveTemplatePath($template,
                             $provider)) . '</info> to <comment>deckle project directory</comment> (' . realpath('./deckle/.template') . ')');
+            }
 
-            $fs->mirror($this->resolveTemplatePath($template, $provider), './deckle/.template');
+            $fs->mirror($this->templates()->resolveTemplatePath($template, $provider), './deckle/.template');
 
             // process template files
 
             // process template before triggering project specific init process
             $templateContent = new RecursiveIteratorIterator(new RecursiveDirectoryIterator('./deckle/.template'));
 
-            while($templateContent->valid()) {
+            while ($templateContent->valid()) {
 
                 if (!$templateContent->isDot()) {
 
@@ -125,22 +121,30 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
                     $targetDirectory = './deckle/' . $templateContent->getSubPath();
                     $targetFile = './deckle/' . $templateContent->getSubPathName();
 
-                    if($this->output->isVerbose()) $this->output->writeln(sprintf('Creating target directory "<info>%s</info>"', $targetDirectory));
-                    if(!is_dir($targetDirectory)) mkdir($targetDirectory, 0755, true);
 
-                    if($this->output->isVerbose()) $this->output->writeln(sprintf('Copying "<info>%s</info>" to "<info>%s</info>"', $source, $targetFile));
+                    if (!is_dir($targetDirectory)) {
+                        if ($this->output->isVerbose()) {
+                            $this->output->writeln(sprintf('Creating target directory "<info>%s</info>"',
+                                $targetDirectory));
+                        }
+                        mkdir($targetDirectory, 0755, true);
+                    }
+
+                    if ($this->output->isVerbose()) {
+                        $this->output->writeln(sprintf('Copying "<info>%s</info>" to "<info>%s</info>"', $source,
+                            $targetFile));
+                    }
 
                     // return mime type ala mimetype extension
                     $finfo = finfo_open(FILEINFO_MIME);
                     //check to see if the mime-type starts with 'text'
                     $binary = substr(finfo_file($finfo, $source), 0, 4) != 'text';
-                    if(!$binary) {
+                    if (!$binary) {
                         $this->copyTemplateFile($source, $targetFile, true,
                             ['conf<project.name>']);
                     } else {
                         copy($source, $targetFile);
                     }
-
 
                 }
 
@@ -149,12 +153,12 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
 
             file_put_contents('deckle/.template/.deckle.lock', $provider . ':' . $template);
-            $this->output->writeln('');
-            $this->output->writeln('Done importing template!');
-            $this->output->writeln('');
-            $this->output->writeln('You should now adapt config in <info>./deckle/deckle.yml</info> or create a <info>./deckle.local.yml</info> file to tune the default config.');
-            $this->output->writeln('');
-            $this->output->writeln('You have then to finish instance configuration by generating the entire project config files by executing <info>deckle init</info>. Enjoy!');
+            $this->output->success([
+                'Done importing template!',
+                'You should now adapt config in "./deckle/deckle.yml',
+                'or create a "./deckle.local.yml" file to tune the default config.',
+                'You can now launch the project by executing "deckle up".'
+            ]);
 
         } catch (\Throwable $e) {
             //clean aborted installation in case of error

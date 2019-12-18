@@ -24,9 +24,9 @@ class Drush extends AbstractDrupal8Command
 
         $output->writeln('Executing <comment>drush</comment> on remote container');
 
-        $path = $this->projectConfig['app']['path'];
+        $path = $this->config['app']['path'];
 
-        $this->dockerExec('vendor/bin/drush', $this->input->getArgument('args'), $path);
+        $this->dockerExec('vendor/bin/drush' .  implode(' ', $this->input->getArgument('args')), $path);
     }
 
 

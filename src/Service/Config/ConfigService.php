@@ -4,11 +4,12 @@
 namespace Adimeo\Deckle\Service\Config;
 
 
-use Adimeo\Deckle\Config\Loader\FileLoader;
-use Adimeo\Deckle\Config\Parser\YamlParser;
-use Adimeo\Deckle\Config\Processor\ProcessorInterface;
+use Adimeo\Deckle\Service\AbstractDeckleService;
+use Adimeo\Deckle\Service\Config\Loader\FileLoader;
+use Adimeo\Deckle\Service\Config\Parser\YamlParser;
+use Adimeo\Deckle\Service\Config\Processor\ProcessorInterface;
 
-class ConfigManager
+class ConfigService extends AbstractDeckleService
 {
 
     /** @var FileLoader */
@@ -22,7 +23,7 @@ class ConfigManager
 
     /**
      * ConfigManager constructor.
-     * @param FileLoaderder $loader
+     * @param FileLoader $loader
      * @param YamlParser $parser
      */
     public function __construct(FileLoader $loader, YamlParser $parser)

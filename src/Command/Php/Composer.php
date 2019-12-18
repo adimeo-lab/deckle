@@ -5,6 +5,7 @@ namespace Adimeo\Deckle\Command\Php;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Service\Shell\Script\Location\Container;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -22,7 +23,7 @@ class Composer extends AbstractDeckleCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
 
-        $path = $this->projectConfig['app']['path'];
+        $path = $this->config['app']['path'];
         $args = $this->input->getArgument('args');
 
         switch($args[0] ?? false) {
@@ -32,16 +33,16 @@ class Composer extends AbstractDeckleCommand
                 //$command = 'rm -rf web/core/* ; rm -rf vendor/* ; rm -rf web/modules/contrib/*';
                 $command = 'rm -rf ';
                 $args = ['*'];
-                $this->dockerExec($command, $args, $this->projectConfig['app']['path'] . '/web/core');
+                $this->sh()->exec($command . implode(' ',  $args), new Container($this->config['app']['path'] . '/web/core'));
                 $args = ['*'];
-                $this->dockerExec($command, $args, $this->projectConfig['app']['path'] . '/vendor');
+                $this->sh()->exec($command . implode(' ',  $args), new Container($this->config['app']['path'] . '/vendor'));
                 $args = ['*'];
-                $this->dockerExec($command, $args, $this->projectConfig['app']['path'] . '/web/modules/contrib');
+                $this->sh()->exec($command . implode(' ',  $args), new Container($this->config['app']['path'] . '/web/modules/contrib'));
                 break;
 
             default:
                 $output->writeln('Executing <comment>composer</comment> on remote container');
-                $this->dockerExec('composer ', $args, $path);
+                $this->sh()->exec('composer ' . implode(' ', $args), new Container($path));
                 break;
         }
 

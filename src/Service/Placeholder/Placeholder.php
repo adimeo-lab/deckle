@@ -4,8 +4,6 @@
 namespace Adimeo\Deckle\Service\Placeholder;
 
 
-use Adimeo\Deckle\Config\Processor\ProcessorInterface;
-
 class Placeholder implements PlaceholderInterface
 {
     /** @var string */

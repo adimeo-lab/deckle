@@ -4,7 +4,7 @@
 namespace Adimeo\Deckle\Service\Placeholder;
 
 
-class PlaceholdersManager
+class PlaceholdersService
 {
     public function extractPlaceholders($content) : array
     {

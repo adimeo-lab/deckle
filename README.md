@@ -15,81 +15,23 @@ L'administration d'un tel environnement peut s'avérer complexe, voire déroutan
 Pour fonctionner de manière optimale, l'ecosystème Deckle requiert les compsoants suivants :
 
  - macOs :)
- - [Parallels Desktop](http://www.parallels.com)
+ - [Virtual Box](http://www.virtualbox.org)
  - [Homebrew](http://www.homebrew.com)
  - [Mutagen](http://www.mutagen.io)
  - [Vagrant](http://www.vagrantup.com)     
 
-NOTE : Deckle fonctionnera de la même manière avec tout autre moteur de virtualisation, mais sur macOs, il se révèle 
-particulièrement performant et ergonomique.
 
 ## Paramétrage
 
 ### Installation des dépendances
 
 La majorité des outils en ligne de commande nécessaires au bon fonctionnement de Deckle sont soit natifs 
-sur macOs soit installables avec `brew`.
+sur macOs soit installables avec `brew`. L'installateur de Deckle procédera à l'installation de ces dépendances.  
 
-#### Parallels Desktop
+#### Virtual Box
 
-Télécharger l'installateur sur [le site de l'éditeur](http://www.parallels.com), puis suivre les instructions 
-d'isntallation.
+Téléchargez l'installateur sur le [site officiel](https://www.virtualbox.org/wiki/Downloads).
 
-Télécharger ensuite la dernière image disponible sur [le site de Deckle](https://deckle.io/images/paralles/desckle-latest.pvm)
-
-Une fois la machine démarée, penser à récupérer son adresse IP, que l'on référencera plus tard dans ce document `<IPVM>`.
-
-```shell script
-ping deckle-vm
-```
-
-#### Git
-
-Evidemment, il vous faudra `git` :
-
-```shell script
-brew install git
-```
-#### Docker
-
-Nous utiliserons également le client `docker` (le serveur se trouve dans la VM) :
-
-```shell script
-brew install docker
-```
-
-
-#### Dnsmasq
-
-Pour permettre la résolution des domaines *.deckle.local, il faudra utiliser dnsmasq, un pseudo-serveur DNS local.
-
-Celui-ci s'installe également avec `brew` :
-
-```shell script
-brew install dnsmasq
-```
-
-Sa configuration est assez simple :
-
-D'abord, créer la configuration qui permettra la résolution des domaines `*.deckle.local` dans `dnsmasq` :
-
-```shell script
-echo 'address=/.deckle.local/IPVM' >> /usr/local/etc/dnsmasq.conf
-```  
-
-NOTE: bien penser à remplacer `IPVM` par la véritable adresse IP de votre machine.
-
-Enfin, dire à macOs d'utiliser dnsmasq pour résoudre toutes les requêtes DNS portant sur les domaines se terminant 
-par `deckle.local` :
-
-```shell script
-sudo mkdir /etc/resolver
-sudo bash -c 'echo "nameserver 127.0.0.1" > /etc/resolver/deckle.local'
-dscacheutil -flushcache
-sudo killall -HUP mDNSResponder
-``` 
-
-En cas de problème avec la mise en oeuvre de DNSmasq, consulter [ce blog](https://www.stevenrombauts.be/2018/01/use-dnsmasq-instead-of-etc-hosts/#configure-as-default-dns-resolver-in-macos)
 
 #### Mutagen
 
@@ -97,11 +39,7 @@ Pour assurer des performances maximales, nous n'utilisons pas de montage de volu
 outil de synchronisation ultra performant qui installe un daemon dans le container et assure en permanence une synchronisation
 bi-directionelle entre l'hôte et le container, avec une precedence donnée à l'hôte.
 
-Cet outil s'appelle `mutagen` et s'installe sous macOs à l'aide de `brew` :
-
-```shell script
-brew install mutagen-io/mutagen/mutagen
-```  
+Cet outil s'appelle `mutagen` et s'installe sous macOs à l'aide de `brew`.   
 
 NOTE : Si vous tentez d'utilisez Deckle sur une autre plateforme que macOs (Windows et Linux notamment), il faut télécharger le package sur [la page GitHub](https://github.com/mutagen-io/mutagen/releases) du projet.
 
@@ -141,20 +79,7 @@ Host deckle-vm
 
 ```
 
-#### Déclaration de l'hôte Docker
 
-Une autre configuration importante est celle de docker. En effet, Docker va tourner dans la VM Ubuntu, mais 
-un certain nombre de commandes deckle vont dialoguer avec le daemon Docker directement depuis macOs.
-
-Pour cela, il faut indiquer au client Docker l'adresse de l'hôte Docker :
-
-```
-# pour bash
-echo "export DOCKER_HOST=deckle-vm:4342" >> ~/.bashrc
-
-# pour zsh
-echo "export DOCKER_HOST=deckle-vm:4342" >> ~/.zshrc
-```
 
 
 ## Travailler avec Deckle
@@ -184,17 +109,7 @@ deckle sync start
 Pour contrôler le bon fonctionnement de la synchronisation :
 
 ```shell script
-deckle sync status
-```
-
-### Définition des droits
-
-
-Selon les projets, il est souvent nécessaire de fiwer des permissions spécifiques sur les sources. Deckle
-fournit une commande pour cela. Cette commande est dépendante du type de projet (drupal8, sf4, ...) :  
-
-```shell script
-deckle permissions:fix
+deckle sync monitor
 ```
 
 ### Installation des dépendances
@@ -209,7 +124,7 @@ deckle composer install
 NOTE: si vous voulez passer des paramètres à `composer`, il faut les faire précéder de la séquence `--` afin
 que Deckle les ignore.  
 
-### Ouvrir un shell
+### Ouvrir un shell dans le container principal
 
 Pour accéder rapidement aux images de l'environnement en shell, exécutez :
 
@@ -223,14 +138,27 @@ deckle sh
 ## Portainer
 
 http://portainer.deckle.local
-admin/docker-admin
+admin/portainer
 
 ## Traefik
 http://traefik.deckle.local
 
 ## phpMyAdmin
 
-http://pma.deckle.local
+http://pma57.deckle.local
+
+# Etendre Deckle
+
+## Commandes locales
+
+Si vous souhaitez écrire une commande spécifique à un projet, vous pouvez créer une classe dans `./deckle/commands`.
+
+Le fichier contenant la classe doit s'appeler `*Command.php` et étendre `AdimeoLab\Deckle\AbstractDeckleCommand`.
+
+
+| Attention : pour développer votre commande, il vous faudra installer les sources de Deckle dans votre dossier `./deckle`,
+| mais ces sources ne seront pas celles utilisées à l'exécution. A la place, ce sont celles embarquées dans le binaire 
+| `deckle(.phar)` qui le seront. Il n'y a pour l'heure aucun mécanisme de contrôle de versions pour les commandes locales.
 
 
 # Problèmes fréquents
@@ -242,3 +170,14 @@ Le message `Host key verification failed.` signifie en général que la machine 
 que son identité est absente du fichier `~/.ssh/known_hosts`). 
 
 Pour remédier à ce problème, il faut faire une première connexion depuis la VM elle-même sur la machine concernée.
+
+## La résolution des hôtes *.deckle.local ne fonctionne pas
+
+Si ce problème survient, tentez de redémarrer le sous-système DNS de macOs comme suit : 
+
+```shell script
+dscacheutil -flushcache
+sudo killall -HUP mDNSResponder
+``` 
+
+En cas de problème avec la mise en oeuvre de DNSmasq, consulter [ce blog](https://www.stevenrombauts.be/2018/01/use-dnsmasq-instead-of-etc-hosts/#configure-as-default-dns-resolver-in-macos)

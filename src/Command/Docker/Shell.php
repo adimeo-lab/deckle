@@ -5,6 +5,7 @@ namespace Adimeo\Deckle\Command\Docker;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Service\Shell\Script\Location\Container;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -22,20 +23,10 @@ class Shell extends AbstractDeckleCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $container = $input->getArgument('container') ?: $this->projectConfig['app']['container'];
-        $containerId = $this->getContainerId($container);
-        $shell = $input->getOption('shell') ?? $this->projectConfig['defaults']['shell'] ?? 'bash';
-        $command = sprintf('exec -ti %s %s', $containerId, $shell);
-        $this->docker($command);
-    }
+        $containerName = $input->getArgument('container') ?: $this->getConfig()->get('app.container');
+        $shell = $input->getOption('shell') ?? $this->config['defaults']['shell'] ?? 'bash';
 
-    protected function docker(string $command, $host = 'localhost')
-    {
-        if($this->output->isVeryVerbose()) {
-            $this->output->writeln('About to run docker command: <comment>' . $command . '</comment> from <comment>' . $host . '</comment>');
-        }
-        passthru('docker ' . $command . ';' . PHP_EOL);
+        $this->sh()->exec($shell, new Container($containerName, '~'), false);
     }
-
 
 }

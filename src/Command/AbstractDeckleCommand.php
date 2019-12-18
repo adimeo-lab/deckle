@@ -4,15 +4,24 @@
 namespace Adimeo\Deckle\Command;
 
 
-use Adimeo\Deckle\Command\Deckle\InstallMacOs;
-use Adimeo\Deckle\Config\DeckleConfig;
+use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Container\ContainerAwareInterface;
+use Adimeo\Deckle\Container\ContainerAwareTrait;
 use Adimeo\Deckle\Exception\DeckleException;
-use Adimeo\Deckle\Service\Config\ConfigManager;
+use Adimeo\Deckle\Service\Config\ConfigService;
+use Adimeo\Deckle\Service\Config\DeckleConfig;
+use Adimeo\Deckle\Service\Docker\DockerTrait;
+use Adimeo\Deckle\Service\Filesystem\FilesystemTrait;
+use Adimeo\Deckle\Service\Git\GitTrait;
 use Adimeo\Deckle\Service\Placeholder\PlaceholderInterface;
-use Adimeo\Deckle\Service\Placeholder\PlaceholdersManager;
+use Adimeo\Deckle\Service\Placeholder\PlaceholdersService;
+use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
+use Adimeo\Deckle\Service\Shell\ShellTrait;
+use Adimeo\Deckle\Service\Templates\TemplatesTrait;
+use Adimeo\Deckle\Service\Vm\VmTrait;
+use ObjectivePHP\ServicesFactory\ServicesFactory;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
@@ -22,13 +31,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  * Class AbstractDeckleCommand
  * @package Adimeo\Deckle\Command
  */
-abstract class AbstractDeckleCommand extends Command
+abstract class AbstractDeckleCommand extends Command implements ContainerAwareInterface
 {
-    /** @var ConfigManager */
-    protected $configManager;
 
-    /** @var array */
-    protected $projectConfig = [];
+    use ContainerAwareTrait;
+
+    /** @var ConfigService */
+    protected $configService;
+
+    /** @var DeckleConfig */
+    protected $config;
     /**
      * @var InputInterface
      */
@@ -41,35 +53,43 @@ abstract class AbstractDeckleCommand extends Command
     /** @var array */
     protected $currentlyResolving = [];
 
-    /** @var PlaceholdersManager */
-    protected $placeholdersManager;
-    /**
-     * @var string
-     */
-    protected $lastSshCommandOutput;
+    /** @var PlaceholdersService */
+    protected $placeholdersService;
 
-    /**
-     * @var SymfonyStyle
-     */
-    protected $style;
+    use ShellTrait;
+    use VmTrait;
+    use FilesystemTrait;
+    use DockerTrait;
+    use GitTrait;
+    use TemplatesTrait;
 
     /**
      * AbstractDeckleCommand constructor.
-     * @param ConfigManager $configManager
-     * @param PlaceholdersManager $placeholdersManager
-     * @throws DeckleException
+     * @param ServicesFactory $servicesFactory
+     * @param ConfigService $configService
+     * @param PlaceholdersService $placeholdersService
      */
-    public function __construct(ConfigManager $configManager, PlaceholdersManager $placeholdersManager)
-    {
-        $this->configManager = $configManager;
-        $this->placeholdersManager = $placeholdersManager;
+    public function __construct(
+        ServicesFactory $servicesFactory,
+        ConfigService $configService,
+        PlaceholdersService $placeholdersService
+    ) {
+
+        $this->configService = $configService;
+        $this->placeholdersService = $placeholdersService;
+        $this->setContainer($servicesFactory);
+        $this->config = $servicesFactory->get(DeckleConfig::class);
 
         parent::__construct(null);
-        $this->addOption('config-file', 'c', InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY,
-            'Extra configuration file', []);
+
     }
 
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @throws DeckleException
+     */
     public function initialize(InputInterface $input, OutputInterface $output)
     {
         $this->input = $input;
@@ -79,133 +99,86 @@ abstract class AbstractDeckleCommand extends Command
             if (!is_dir('./deckle')) {
                 $this->error('No "./deckle" folder found. You may need to bootstrap your project.');
             }
-
-            if (!isset($this->projectConfig['project']['name'])) {
-                $this->loadProjectConfig();
-            }
         }
+
+        $this->loadConfig();
     }
 
     /**
      *
      */
-    public function loadProjectConfig()
+    public function loadConfig()
     {
         $configFiles = [
-            InstallMacOs::DECKLE_HOME . '/deckle.conf.yml',
-            InstallMacOs::DECKLE_HOME . '/deckle.local.yml',
+            Install::DECKLE_HOME . '/deckle.conf.yml',
+            Install::DECKLE_HOME . '/deckle.local.yml',
             './deckle/deckle.yml',
             './deckle.local.yml'
         ];
 
-        if ($extraConfigurationFiles = $this->input->getOption('config-file')) {
-            $configFiles = array_merge($configFiles, $extraConfigurationFiles);
-        }
-
-        if ($this->output->isVerbose()) {
-            $this->output->writeln("Importing configuration files");
+        if ($this->output->isVeryVerbose()) {
+            $this->output->writeln("<info>Loading configuration files...</info>");
         }
 
         $conf = [];
         $loadedFiles = 0;
 
         foreach ($configFiles as $configFile) {
-            if (file_exists($this->expandTilde($configFile))) {
+            if (file_exists($this->fs()->expandTilde($configFile))) {
                 if ($this->output->isVeryVerbose()) {
                     $this->output->writeln("Loading configuration file <comment>" . $configFile . "</comment>");
                 }
-                $loadedConf = $this->configManager->load($this->expandTilde($configFile));
+                $loadedConf = $this->configService->load($this->fs()->expandTilde($configFile));
 
-                $conf = $this->configManager->merge($conf, $loadedConf);
+                $conf = $this->configService->merge($conf, $loadedConf);
                 $loadedFiles++;
             } else {
                 if ($this->output->isVeryVerbose()) {
-                    $this->output->writeln('<error>Missing configuration file "' . $configFile . '"</error>');
+                    $this->output->note('Missing configuration file <info>' . $configFile . '</info>');
                 }
             }
         }
 
-        if(!$this instanceof ProjectIndependantCommandInterface) {
-            if (!$loadedFiles) {
-                $this->error('No deckle config file found!');
-                exit;
-            }
+        if (!$this instanceof ProjectIndependantCommandInterface) {
 
             if (!isset($conf['project']['name'])) {
                 $this->error('Missing project name in configuration!');
             }
         }
 
-        // add default values
-        if (!isset($conf['docker']['host'])) {
-            if (!isset($conf['docker'])) {
-                $conf['docker'] = [];
-            }
-            $conf['docker']['host'] = getenv('DOCKER_HOST') ?? 'deckle-vm:4243';
-        }
 
         try {
-            $this->projectConfig = (new DeckleConfig($conf))->getConfigArray();
+            $this->config->hydrate($conf);
         } catch (DeckleException $e) {
             $this->error($e->getMessage());
         }
 
     }
 
-    /**
-     * @param $path
-     * @return mixed
-     */
-    function expandTilde($path)
-    {
-        if (extension_loaded('posix') && strpos($path, '~') !== false) {
-            $info = posix_getpwuid(posix_getuid());
-            $path = str_replace('~', $info['dir'], $path);
-        }
-        return $path;
-    }
-
 
     /**
-     * @param array $config
+     * @param DeckleConfig $config
      */
-    public function setProjectConfig(array $config)
+    public function setConfig(DeckleConfig $config)
     {
-        $this->projectConfig = $config;
+        $this->config = $config;
     }
 
     /**
      * @param $key
      * @param null $default
-     * @return mixed|null
+     * @return DeckleConfig|null
      */
-    public function getConfigDirective($key, $default = null)
+    public function getConfig($key = null, $default = null)
     {
-        $config = $this->getProjectConfig();
-        do {
-            $path = explode('.', $key);
-            if (count($path) == 1) {
-                return $config[$path[0]] ?? $default;
-            } else {
-                if (!isset($config[$path[0]])) {
-                    return $default;
-                }
-                $config = $config[$path[0]];
-                $key = $path[1];
-            }
-        } while (true);
-    }
+        if (!$this->hasConfig()) {
+            $this->loadConfig();
+        }
 
-    public function getEnvVariables(): array
-    {
-        return $this->getProjectConfig()['env'];
-    }
-
-    public function getEnvVariable($var, $default = null)
-    {
-        return $this->processPlaceholders($this->getEnvVariables()[$var] ?? $default);
-
-
+        if (is_null($key)) {
+            return $this->config;
+        }
+        return $this->config->get($key, $default);
     }
 
     /**
@@ -228,7 +201,7 @@ abstract class AbstractDeckleCommand extends Command
                 break;
 
             case 'conf':
-                $value = $this->getConfigDirective($placeholder->getParams()[0]);
+                $value = $this->getConfig($placeholder->getParams()[0]);
                 break;
 
             case 'ask':
@@ -263,167 +236,60 @@ abstract class AbstractDeckleCommand extends Command
         return '';
     }
 
+    /**
+     * @return SymfonyStyle
+     */
+    protected function output()
+    {
+        return $this->output;
+    }
+
+    /**
+     * @return InputInterface
+     */
+    protected function input()
+    {
+        return $this->input;
+    }
+
+    /**
+     * @param $param
+     * @throws DeckleException
+     */
     protected function processPlaceholders($param)
     {
-        $placeholders = $this->placeholdersManager->extractPlaceholders($param);
+        $placeholders = $this->placeholdersService->extractPlaceholders($param);
         foreach ($placeholders as $placeholder) {
-            $param = $this->placeholdersManager->substitutePlaceholder($param, $placeholder,
+            $param = $this->placeholdersService->substitutePlaceholder($param, $placeholder,
                 $this->resolvePlaceholderValue($placeholder));
         }
     }
 
     /**
-     * @return array
+     * @return PlaceholdersService
      */
-    public function getProjectConfig()
+    public function getPlaceholdersService(): PlaceholdersService
     {
-        if (!$this->projectConfig) {
-            $this->loadProjectConfig();
-        }
-        return $this->projectConfig;
-    }
-
-    protected function dockerExec($command, $args = [], $workingDirectory = '~', $container = null)
-    {
-
-        $containerId = is_null($container) ? $this->getAppContainerId() : $this->getContainerId($container);
-
-        $cmd = 'docker exec -ti ' . $containerId . ' bash -c "cd ' . escapeshellarg($workingDirectory) . ';' . escapeshellcmd($command);
-        foreach ($args as &$arg) {
-            //  $arg = escapeshellarg($arg);
-        }
-        $cmd .= ' ' . implode(' ', $args) . '"';
-
-        if ($this->output->isVeryVerbose()) {
-            $this->output->writeln('Running <comment>' . $cmd . '</comment> on Docker remote host <comment>' . $this->projectConfig['docker']['host'] . '</comment>');
-        }
-
-        passthru($cmd);
-    }
-
-    protected function ssh($command, $workingDirectory = '~', $host = null, $user = null)
-    {
-        $user = $user ?? $this->projectConfig['vm']['user'];
-        $host = $host ?? $this->projectConfig['vm']['host'];
-
-        if ($workingDirectory != '~') {
-            $command = 'cd ' . $workingDirectory . '; ' . $command;
-        }
-
-        $command = escapeshellarg($command);
-        $sshCommand = 'ssh ' . $user . '@' . $host . ' ' . $command;
-
-        $return = $this->call($sshCommand, $output);
-        $this->lastSshCommandOutput = $output;
-
-        return $return;
-    }
-
-    protected function scp($source, $target, $host = null, $user = null)
-    {
-        $user = $user ?? $this->projectConfig['vm']['user'];
-        $host = $host ?? $this->projectConfig['vm']['host'];
-
-        $args = is_dir($source) ? '-r' : '';
-
-        $scpCommand = 'scp ' . $args . ' ' . $source . ' ' . $user . '@' . $host . '":' . $target . '"';
-
-        if ($this->output->isVeryVerbose()) {
-            $this->output->writeln('About to execute SCP command: <comment>' . $scpCommand . '</comment>');
-        }
-
-        $this->lastSshCommandOutput = exec($scpCommand, $output, $return);
-
-        return $return;
-
-    }
-
-
-    protected function dockerStatus()
-    {
-        $ch = curl_init($this->projectConfig['docker']['host'] . '/_ping');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        $ping = curl_exec($ch);
-
-        if ($ping) {
-            if ($ping === 'OK') {
-                return true;
-            }
-        }
-        return false;
-
-
-    }
-
-
-    protected function getContainerId(string $containerName)
-    {
-        $ch = curl_init($this->projectConfig['docker']['host'] . '/containers/json');
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-
-        $containers = curl_exec($ch);
-
-        if ($containers) {
-            $containers = json_decode($containers, true);
-        } else {
-            $this->error('Docker does not seem to be running on %s', [$this->projectConfig['docker']['host']]);
-        }
-
-
-        foreach ($containers as $container) {
-            foreach ($container['Names'] as $name) {
-                if ($containerName == trim($name, '/')) {
-                    return $container['Id'];
-                }
-            }
-        }
-
-    }
-
-    protected function getAppContainerId()
-    {
-        $appContainer = $this->projectConfig['app']['container'];
-        return $this->getContainerId($appContainer);
+        return $this->placeholdersService;
     }
 
     /**
-     * @return string
-     */
-    public function getLastSshCommandOutput(): array
-    {
-        return $this->lastSshCommandOutput;
-    }
-
-    /**
-     * @param string $lastSshCommandOutput
+     * @param PlaceholdersService $placeholdersService
      * @return AbstractDeckleCommand
      */
-    protected function setLastSshCommandOutput(array $lastSshCommandOutput): AbstractDeckleCommand
+    public function setPlaceholdersService(PlaceholdersService $placeholdersService): AbstractDeckleCommand
     {
-        $this->lastSshCommandOutput = $lastSshCommandOutput;
+        $this->placeholdersService = $placeholdersService;
         return $this;
     }
 
     /**
-     * @return PlaceholdersManager
+     * @param string $message
+     * @param array $vars
+     * @param int $returnCode
+     * @throws DeckleException
      */
-    public function getPlaceholdersManager(): PlaceholdersManager
-    {
-        return $this->placeholdersManager;
-    }
-
-    /**
-     * @param PlaceholdersManager $placeholdersManager
-     * @return AbstractDeckleCommand
-     */
-    public function setPlaceholdersManager(PlaceholdersManager $placeholdersManager): AbstractDeckleCommand
-    {
-        $this->placeholdersManager = $placeholdersManager;
-        return $this;
-    }
-
-    protected function error(string $message, array $vars = [])
+    protected function error(string $message, array $vars = [], $returnCode = -1)
     {
         $exceptionParams = array_merge([$message], $vars);
         $messageParams = $vars;
@@ -433,18 +299,20 @@ abstract class AbstractDeckleCommand extends Command
         });
         $displayedMessage = vsprintf($message, $vars);
 
-        $this->output->writeln('');
-        $this->output->write('An error occurred: ');
-        $this->output->writeln('<error>' . $displayedMessage . '</error>');
-        $this->output->writeln('');
+        $this->output()->error($displayedMessage);
 
         if ($this->output->isVeryVerbose()) {
             $e = new DeckleException($exceptionParams);
             throw $e;
         }
-        exit;
+
+        exit($returnCode);
     }
 
+    /**
+     * @param $message
+     * @param array $vars
+     */
     protected function halt($message, array $vars = [])
     {
         $messageParams = $vars;
@@ -452,12 +320,10 @@ abstract class AbstractDeckleCommand extends Command
         array_walk($messageParams, function (&$param) {
             $param = '<info>' . $param . '</info>';
         });
-        $message = implode(PHP_EOL, (array) $message);
+        $message = implode(PHP_EOL, (array)$message);
         $displayedMessage = vsprintf($message, $vars);
 
-        $this->output->writeln('');
         $this->output->warning($displayedMessage);
-        $this->output->writeln('');
 
         exit(0);
     }
@@ -467,10 +333,11 @@ abstract class AbstractDeckleCommand extends Command
      * @param bool $ignoreMissing Silently ignore unresolved placeholders
      * @param array $ignoreExceptions Raw placeholders that should not be ignored
      * @return mixed
+     * @throws DeckleException
      */
     protected function processTemplate($template, $ignoreMissing = false, $ignoreExceptions = [])
     {
-        $manager = $this->getPlaceHoldersManager();
+        $manager = $this->getPlaceholdersService();
         $placeholders = $manager->extractPlaceholders($template);
 
         /** @var PlaceholderInterface $placeholder */
@@ -490,6 +357,13 @@ abstract class AbstractDeckleCommand extends Command
         return $template;
     }
 
+    /**
+     * @param string $templateFile
+     * @param string $target
+     * @param bool $ignoreMissing
+     * @param array $ignoreExceptions
+     * @throws DeckleException
+     */
     protected function copyTemplateFile(
         string $templateFile,
         string $target,
@@ -508,77 +382,19 @@ abstract class AbstractDeckleCommand extends Command
 
     }
 
-    protected function findVmAddress()
-    {
-        $ip = null;
-        $guessers[] = [$this, 'findVmAddressFromVBoxManage'];
-        $guessers[] = [$this, 'findVmAddressInHosts'];
-        foreach($guessers as $guesser) {
-            if($ip = $guesser()) return $ip;
-        }
-
-        return null;
-    }
-
-    protected function findVmAddressFromVBoxManage()
-    {
-        if($this->output->isVeryVerbose()) $this->output->writeln('Looking for <info>deckle-vm</info> IP using <info>VBoxManage</info>');
-        if($this->isRunningOnVbox()) {
-            exec('VBoxManage guestproperty enumerate deckle-vm 2>&1', $output);
-
-            foreach($output as $outputLine) {
-                preg_match('/\/VirtualBox\/GuestInfo\/Net\/1\/V4\/IP, value: (\d+\.\d+\.\d+\.\d+)/', $outputLine, $matches);
-                if(isset($matches[1])) {
-                    return $matches[1];
-                }
-            }
-        }
-    }
-
-    protected function isRunningOnVbox()
-    {
-        if($this->isInPath('VBoxManage')) {
-
-            exec('VBoxManage guestproperty enumerate deckle-vm 2>&1', $output);
-
-            foreach($output as $outputLine) {
-                if(strpos($outputLine, 'VBOX_E_OBJECT_NOT_FOUND')) return false;
-            }
-
-            return true;
-
-        } else return false;
-    }
-
-    protected function findVmAddressInHosts()
-    {
-        if($this->output->isVerbose()) $this->output->writeln('Looking for <info>deckle-vm</info> in <info>/etc/hosts</info>');
-        $entries = file('/etc/hosts');
-        foreach ($entries as $entry) {
-            if (strpos(trim($entry), '#') === 0) {
-                continue;
-            }
-            [$ip, $names] = preg_split('/\s+/', $entry, 2);
-            $names = preg_split('/\s+/', $names);
-            if (in_array('deckle-vm', $names)) {
-                return $ip;
-            }
-        }
-
-        return null;
-    }
-
+    /**
+     * @return string
+     */
     protected function getVersion()
     {
         $version = $this->getApplication()->getVersion();
-        if (strpos($version, 'git')) {
+        if (strpos($version, 'package')) {
 
-            if(is_dir('.git')) {
+            if (is_dir('.git')) {
                 $head = file_get_contents('.git//HEAD');
                 $branch = rtrim(preg_replace("/(.*?\/){2}/", '', $head));
                 $version = $branch . '-' . exec('git rev-parse --short HEAD');
-            }
-            else {
+            } else {
                 $version = 'unknown';
             }
         }
@@ -587,59 +403,38 @@ abstract class AbstractDeckleCommand extends Command
     }
 
 
-    protected function confirm($question, bool $default = false) : bool
+    /**
+     * @param $question
+     * @param bool $default
+     * @return bool
+     */
+    protected function confirm($question, bool $default = false): bool
     {
         $helper = $this->getHelper('question');
         $defaultChoice = ($default) ? '[Yn]' : '[yN]';
-        $question = new ConfirmationQuestion('<question>' . $question . ' ' . $defaultChoice . '</question> ', $default);
+        $question = new ConfirmationQuestion('<question>' . $question . ' ' . $defaultChoice . '</question> ',
+            $default);
 
         return $helper->ask($this->input, $this->output, $question);
     }
 
-    protected function isInPath($binary)
+    /**
+     * @return bool
+     */
+    public function hasConfig()
     {
-        $output = shell_exec('which ' . $binary);
-
-        return (bool)$output;
+        return (bool)$this->config;
     }
 
     /**
-     * Helper to ease handling working directory in system calls
-     *
-     * @param $wd
-     * @param $command
-     * @param bool $silent
-     * @param null $output
-     * @return mixed
+     * @return DeckleMachine
      */
-    protected function callFrom($wd, $command, &$output = null, $silent = true)
+    protected function getDeckleMachineLocation()
     {
-        return $this->call($command, $output, $silent, $wd);
-    }
-    protected function call(string $command, &$output = null, $silent = true, $wd = '.')
-    {
-        if ($silent && !$this->output->isVerbose()) {
-            $silence = ' 2>&1';
-        } else {
-            $silence = '';
-        }
+        $machine = new DeckleMachine();
+        $this->sh()->completeDeckleMachineLocation($machine);
 
-        if($wd != '.') {
-            $cwd = 'cd ' . $wd . ' && ';
-        } else {
-            $cwd = '';
-        }
-
-        if($this->output->isVeryVerbose()) {
-            $this->output->writeln(sprintf('Executing <info>%s</info> in <info>%s</info>', $command, $wd));
-        }
-        if($silence) {
-            exec($cwd . $command . $silence, $output, $return);
-        } else {
-            system($cwd . $command, $return);
-        }
-
-        return $return;
+        return $machine;
     }
 
 }

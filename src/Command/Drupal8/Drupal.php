@@ -23,8 +23,8 @@ class Drupal extends AbstractDrupal8Command
     protected function execute(InputInterface $input, OutputInterface $output)
     {
             $output->writeln('Executing <comment>drupal</comment> on remote container');
-            $path = $this->projectConfig['app']['path'];
-            $this->dockerExec('vendor/bin/drupal', $this->input->getArgument('args'), $path);
+            $path = $this->config['app']['path'];
+            $this->dockerExec('vendor/bin/drupal' . implode(' ', $this->input->getArgument('args')), $path);
     }
 
 

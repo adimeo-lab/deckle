@@ -1,17 +1,16 @@
 <?php
 
 
-namespace Adimeo\Deckle\Command\Deckle;
+namespace Adimeo\Deckle\Command\Templates;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
-use Adimeo\Deckle\Service\Recipes\TemplatesManager;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class TemplatesList extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
+class ListTemplates extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
 
     use TemplatesHelper;
@@ -28,14 +27,14 @@ class TemplatesList extends AbstractDeckleCommand implements ProjectIndependantC
         $output->writeln('<info>Locally available templates</info>');
         $output->writeln('');
 
-        $templatesLocation = $this->expandTilde('~/.deckle/cache');
+        $templatesLocation = $this->fs()->expandTilde('~/.deckle/cache');
 
-        $providers = $this->loadGlobalConfiguration()['providers'];
+        $providers = $this->getConfig()['providers'];
 
-        chdir($this->getDeckleHomeDirectory() . '/cache');
+        chdir($this->templates()->getPath() . '/cache');
         foreach ($providers as $provider) {
             $output->writeln('From <comment>' . $provider . '</comment>');
-            $vendors = new \DirectoryIterator($this->sanitizeProviderName($provider));
+            $vendors = new \DirectoryIterator($this->templates()->sanitizeProviderName($provider));
             foreach ($vendors as $vendor) {
 
                 if (!$vendor->isDir() || $vendor->isDot() || $vendor->getBasename() == '.git') {
@@ -51,9 +50,7 @@ class TemplatesList extends AbstractDeckleCommand implements ProjectIndependantC
                 }
             }
         }
-
         $output->writeln('');
-
     }
 
 }

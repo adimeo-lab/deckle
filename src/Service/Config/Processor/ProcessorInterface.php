@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Adimeo\Deckle\Config\Processor;
+namespace Adimeo\Deckle\Service\Config\Processor;
 
 
 interface ProcessorInterface

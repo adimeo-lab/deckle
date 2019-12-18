@@ -7,6 +7,7 @@ namespace Adimeo\Deckle\Command\Vm;
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -23,19 +24,19 @@ class AddKnownHost extends AbstractDeckleCommand implements ProjectIndependantCo
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $config = $this->getProjectConfig();
+        $config = $this->getConfig();
 
         $host = $config['vm']['host'] ?? null;
         $user = $config['vm']['user'] ?? null;
 
         if(!$host || !$user) {
-            $this->error('No Deckle VM configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
+            $this->error('No Deckle Machine configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
         }
 
         $newHost = $input->getArgument('host');
 
-        $output->writeln('Adding a SSH host to known hosts for <comment>'. $user . '@' . $host .'</comment> ...');
-        $this->ssh(sprintf('ssh-keyscan -H %s >> ~/.ssh/known_hosts', $newHost));
+        $output->writeln('Adding a <info>' . $newHost . '</info> to Deckle Machine known SSH hosts...');
+        $this->sh()->exec(sprintf('ssh-keyscan -H %s >> ~/.ssh/known_hosts', $newHost), new DeckleMachine());
     }
 
 }

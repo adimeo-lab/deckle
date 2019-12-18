@@ -1,10 +1,11 @@
 <?php
 
 
-namespace Adimeo\Deckle\Command\Deckle;
+namespace Adimeo\Deckle\Command\Templates;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
 use Adimeo\Deckle\Exception\Config\ConfigException;
 use Symfony\Component\Console\Input\InputInterface;
@@ -26,7 +27,7 @@ class Update extends AbstractDeckleCommand
     protected function configure()
     {
         parent::configure();
-        $this->setName('update')
+        $this->setName('templates:update')
             ->setDescription('Update local templates copy');
     }
 

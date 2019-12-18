@@ -4,6 +4,9 @@ require_once __DIR__ . '/vendor/autoload.php';
 use Adimeo\Deckle\AppKernel;
 use Adimeo\Deckle\Deckle;
 use Symfony\Component\Console\Application;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\HttpKernel\Kernel;
 
 $cwd = getcwd();
@@ -21,9 +24,8 @@ try {
     $app->run();
 } catch (\Throwable $e) {
     chdir($cwd);
-    printf('Uncaught exception %s thrown in %s:%s' . PHP_EOL, get_class($e), $e->getFile(), $e->getLine());
-    echo 'Message: ' . $e->getMessage() . PHP_EOL;
-    echo $e->getTraceAsString();
+    $output = new SymfonyStyle(new ArrayInput([]), new ConsoleOutput());
+    $output->error($e->getMessage());
 }
 
 

@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Adimeo\Deckle\Config\Loader;
+namespace Adimeo\Deckle\Service\Config\Loader;
 
 
 use Adimeo\Deckle\Exception\Config\ConfigException;

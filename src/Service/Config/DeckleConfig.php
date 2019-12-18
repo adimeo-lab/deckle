@@ -1,7 +1,7 @@
 <?php
 
 
-namespace Adimeo\Deckle\Config;
+namespace Adimeo\Deckle\Service\Config;
 
 
 use Adimeo\Deckle\Exception\DeckleException;
@@ -18,9 +18,12 @@ class DeckleConfig implements \ArrayAccess
     /** @var array  */
     protected $schema = [
         'project' => ['name' => null, 'type' => null],
+        'plugins' => [
+            'paths' => []
+        ],
         'vm' => ['host' => null, 'user' => null],
         'docker' => ['host' => null, 'path' => null],
-        'app' => ['container' => null, 'path' => null, 'port' => null],
+        'app' => ['container' => null, 'path' => null, 'port' => null, 'service' => null],
         'db' => ['container' => null, 'port' => null, 'database' => null, 'username' => null, 'password' => null],
         'reference' => ['host' => null, 'user' => null, 'path' => null, 'db' => ['host' => null, 'port' => '', 'database' => null, 'username' => null, 'password' => null]],
         'providers' => [],
@@ -29,17 +32,12 @@ class DeckleConfig implements \ArrayAccess
 
     protected $config = [];
 
-    /** @var array  */
-    protected $processors = [];
-
-    /** @var array */
-    private $currentlyHydrating;
-
     /**
      * DeckleConfig constructor.
      * @param array $data
+     * @throws DeckleException
      */
-    public function __construct(array $data)
+    public function __construct(array $data = [])
     {
         $this->config = $this->schema;
 
@@ -76,7 +74,7 @@ class DeckleConfig implements \ArrayAccess
                 unset($data[$item]);
             }
             // sub array to hydrate...
-            elseif(is_array($value) && is_string(key($value))) {
+            elseif(is_array($value)) {
                 $this->hydrate($data[$item], $config[$item], $schema[$item]);
             }
             // scalar values
@@ -87,9 +85,11 @@ class DeckleConfig implements \ArrayAccess
                 } else {
                     throw new DeckleException(['An error occurred while handling "%s" config entry: a scalar value is expected, non-scalar value was passed.', $item]);
                 }
-
             }
         }
+
+        // check values
+        $this->checkConfig();
     }
 
     /**
@@ -113,10 +113,12 @@ class DeckleConfig implements \ArrayAccess
     /**
      * @param mixed $offset
      * @param mixed $value
+     * @throws DeckleException
      */
     public function offsetSet($offset, $value)
     {
         $this->config[$offset] = $value;
+        $this->checkConfig();
     }
 
     /**
@@ -133,5 +135,29 @@ class DeckleConfig implements \ArrayAccess
     public function getConfigArray() : array
     {
         return $this->config;
+    }
+
+    public function get($key, $default = null)
+    {
+        $config = &$this->config;
+        $parts = explode('.', $key);
+        for($i=0; $i < count($parts) - 1; $i++) {
+            if(!isset($config[$parts[$i]]) || !is_array($config[$parts[$i]])) {
+                return $default;
+            }
+            $config = &$config[$parts[$i]];
+        }
+
+        return $config[$parts[$i]] ?? $default;
+
+    }
+
+    private function checkConfig()
+    {
+        // project name
+        $projectName = $this->get('project.name');
+        if($projectName && !preg_match('/^[\w\d]+$/', $projectName)) {
+            throw new DeckleException(['Project name "%s" is invalid: it may contains only alphanumerical characters', $projectName]);
+        }
     }
 }

@@ -1,6 +1,6 @@
 <?php
 
-namespace Adimeo\Deckle\Config\Parser;
+namespace Adimeo\Deckle\Service\Config\Parser;
 
 
 interface ConfigParserInterface

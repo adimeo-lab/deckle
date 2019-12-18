@@ -5,6 +5,8 @@ namespace Adimeo\Deckle\Command\Docker;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Exception\DeckleException;
+use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -16,7 +18,6 @@ use Symfony\Component\Console\Output\OutputInterface;
  */
 class Compose extends AbstractDeckleCommand
 {
-
     /**
      *
      */
@@ -31,11 +32,18 @@ class Compose extends AbstractDeckleCommand
 
     }
 
+    /**
+     * @param InputInterface $input
+     * @param OutputInterface $output
+     * @return int|void
+     * @throws DeckleException
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $args = implode(' ', $input->getArgument('args'));
+        $silent = $output->isQuiet();
 
-        $this->ssh('docker-compose ' . $args, $this->projectConfig['docker']['path']);
+        $this->sh()->exec('docker-compose ' . $args, new DeckleMachine($this->getConfig('docker.path')), $silent);
     }
 
 

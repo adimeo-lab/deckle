@@ -52,11 +52,10 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
             $template = $input->getArgument('template');
 
             while (!$template) {
-                $template = Deckle::askQuestion(new Question('Please indicate which template to use (press enter to list available templates)'));
+                $template = Deckle::prompt('Please indicate which template to use (press enter to list available templates)');
 
                 if (!$template) {
-                    $command = $this->getApplication()->find('templates:list');
-                    $command->run(new ArrayInput([]), $output);
+                   Deckle::runCommand('templates:list');
                 }
             }
 

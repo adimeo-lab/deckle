@@ -331,7 +331,7 @@ class Deckle extends Application
         return self::output()->getVerbosity();
     }
 
-    static public function setVerbosity(isnt $verbosity): bool
+    static public function setVerbosity(int $verbosity): bool
     {
         return self::output()->setVerbosity($verbosity);
     }

@@ -276,7 +276,7 @@ END;
             mkdir($vagrantPath);
             Deckle::print('Cloning Deckle Vagrant VM configuration in <info>' . $vagrantPath . '</info>');
             // TODO make vagrant configuration file dynamic
-            $this->git()->clone('https://github.com/adimeo-lab/deckle-vagrant', new LocalPath($vagrantPath));
+            $this->git()->clone('https://github.com/adimeo-lab/deckle-vagrant', new LocalPath(dirname($vagrantPath)), 'vagrant');
             Deckle::print('Provisioning Deckle Vagrant VM <info>' . $vagrantPath . '</info>');
             $return = $this->sh()->exec('vagrant up', new LocalPath($vagrantPath), false);
         } else {

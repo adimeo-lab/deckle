@@ -5,6 +5,7 @@ namespace Adimeo\Deckle\Command\Deckle;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -28,21 +29,20 @@ class Init extends AbstractDeckleCommand
     {
 
         if (!is_dir('./deckle')) {
-            $this->error('No "./deckle" folder found. You may need to bootstrap your project.');
+            Deckle::error('No "./deckle" folder found. You may need to bootstrap your project.');
         }
 
-        $type = $this->config['project']['type'];
+        $type = $this->getConfig('project.type');
 
         $initCommand = $type . ':init';
+
         $command = $this->getApplication()->find($initCommand);
 
         if(!$command) {
-            $this->error('Unable to init "%s" projects.', [$type]);
+            Deckle::halt('Unable to init "%s" projects.', [$type]);
         }
 
-        $command->setConfig($this->getConfig());
-
-        $command->run($input, $output);
+        Deckle::runCommand($command->getName(), ['--reset' => $input->getOption('reset')]);
     }
 
 }

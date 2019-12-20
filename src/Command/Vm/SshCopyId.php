@@ -7,6 +7,7 @@ namespace Adimeo\Deckle\Command\Vm;
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -24,7 +25,6 @@ class SshCopyId extends AbstractDeckleCommand implements ProjectIndependantComma
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $config = $this->getConfig();
         $key = $input->getOption('identity');
 
         $machine = $this->getDeckleMachineLocation();
@@ -32,14 +32,15 @@ class SshCopyId extends AbstractDeckleCommand implements ProjectIndependantComma
         $user = $machine->getUser();
 
         if(!$host || !$user) {
-            $this->error('No Deckle Machine configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
+            Deckle::error('No Deckle Machine configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
         }
 
-        $output->writeln('Copying <info>' .  $key . '</info> to <comment>'. $user . '@' . $host .'</comment> ...');
+        Deckle::print('Copying <info>%s</info> to <comment>%s@%s</comment> ...', [$key, $user, $host]);
+
         $return  =$this->sh()->exec(sprintf('ssh-copy-id -i %s %s@%s', $key, $user, $host));
 
         if(!$return->isErrored()) {
-            $this->output()->success('Your RSA Id has been successfully copied to your Deckle Machine');
+            Deckle::success('Your RSA Id has been successfully copied to your Deckle Machine');
         } else {
             $message = ['Something went wrong while copying your RSA Id to your Deckle Machine.'];
             if(!$output->isVerbose()) {
@@ -47,9 +48,9 @@ class SshCopyId extends AbstractDeckleCommand implements ProjectIndependantComma
             } else {
                 $message[] = 'More details about this error below.';
             }
-            $this->output->warning($message);
-            if($this->output()->isVerbose()) {
-                $output->writeln($return->getOutput());
+            Deckle::warning($message);
+            if(Deckle::isVerbose()) {
+                Deckle::print($return->getOutput());
             }
         }
 

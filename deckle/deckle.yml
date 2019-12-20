@@ -1,0 +1,27 @@
+
+project:
+  name: bibgir # name used for COMPOSE_PROJECT_NAME, thus for the Docker stack
+  type: drupal8 # project type to tell deckle what to do when initializing/resetting project
+
+vm:
+  host: deckle-vm
+  user: deckle
+
+docker:
+  host: deckle-vm:4243 # overrides DOCKER_HOST
+  path: ~/projects/bibgir # path of the Docker configuration on VM
+
+app:
+  container: bibgir # main app container, where the remote commands are executed
+  path: /var/www/html # path of the project in container ; used as default cwd for remote commands
+
+db: # dev db setup (these data will be used to generate application conf
+  container: mysql57
+  database: bibgir
+  username: root
+  password: root
+
+reference: # integration server info ; user executing deckle must have access to this server
+  host: dev.adimeo.eu
+  user: adimeo
+  path: ~/sites/biblio.gironde/www # needed to fetch files and read db config for syncing

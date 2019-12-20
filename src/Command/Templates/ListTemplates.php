@@ -7,13 +7,12 @@ namespace Adimeo\Deckle\Command\Templates;
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Deckle;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 class ListTemplates extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
-
-    use TemplatesHelper;
 
     protected function configure()
     {
@@ -23,9 +22,9 @@ class ListTemplates extends AbstractDeckleCommand implements ProjectIndependantC
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $output->writeln('');
-        $output->writeln('<info>Locally available templates</info>');
-        $output->writeln('');
+        Deckle::print('');
+        Deckle::print('<info>Locally available templates</info>');
+        Deckle::print('');
 
         $templatesLocation = $this->fs()->expandTilde('~/.deckle/cache');
 
@@ -33,7 +32,7 @@ class ListTemplates extends AbstractDeckleCommand implements ProjectIndependantC
 
         chdir($this->templates()->getPath() . '/cache');
         foreach ($providers as $provider) {
-            $output->writeln('From <comment>' . $provider . '</comment>');
+            Deckle::print('From <comment>' . $provider . '</comment>');
             $vendors = new \DirectoryIterator($this->templates()->sanitizeProviderName($provider));
             foreach ($vendors as $vendor) {
 
@@ -46,11 +45,11 @@ class ListTemplates extends AbstractDeckleCommand implements ProjectIndependantC
                     if (!$template->isDir() || $template->isDot()) {
                         continue;
                     }
-                    $output->writeln("\t<info>" . $vendor->getBasename() . '/' . $template->getBasename() );
+                    Deckle::print("\t<info>" . $vendor->getBasename() . '/' . $template->getBasename() );
                 }
             }
         }
-        $output->writeln('');
+        Deckle::print('');
     }
 
 }

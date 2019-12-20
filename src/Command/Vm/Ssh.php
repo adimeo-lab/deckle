@@ -7,6 +7,7 @@ namespace Adimeo\Deckle\Command\Vm;
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -31,13 +32,13 @@ class Ssh extends AbstractDeckleCommand implements ProjectIndependantCommandInte
             $return = $this->sh()->exec($cmd, $target);
             if($output->isVerbose() || $return->isErrored()) {
                 $style = $return->isErrored() ? 'error' : 'info';
-                $output->writeln('<' . $style . '>SSH command output:</' . $style .'>');
-                $output->writeln(implode("\n", $return->getOutput()));
+                Deckle::print('<' . $style . '>SSH command output:</' . $style .'>');
+                Deckle::print(implode("\n", $return->getOutput()));
             }
         } else {
             $deckle = new DeckleMachine();
             $this->sh()->completeDeckleMachineLocation($deckle);
-            $output->writeln('Opening a SSH session to <info>' . $deckle->getUser() . '</info>@<info>' . $deckle->getHost() . '</info> ...');
+            Deckle::print('Opening a SSH session to <info>' . $deckle->getUser() . '</info>@<info>' . $deckle->getHost() . '</info> ...');
             passthru('ssh ' . $deckle->getUser() . '@' . $deckle->getHost());
         }
     }

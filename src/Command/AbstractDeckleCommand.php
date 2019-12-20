@@ -7,6 +7,7 @@ namespace Adimeo\Deckle\Command;
 use Adimeo\Deckle\Command\Deckle\Install;
 use Adimeo\Deckle\Container\ContainerAwareInterface;
 use Adimeo\Deckle\Container\ContainerAwareTrait;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\Config\ConfigService;
 use Adimeo\Deckle\Service\Config\DeckleConfig;
@@ -21,9 +22,9 @@ use Adimeo\Deckle\Service\Templates\TemplatesTrait;
 use Adimeo\Deckle\Service\Vm\VmTrait;
 use ObjectivePHP\ServicesFactory\ServicesFactory;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -97,7 +98,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
 
         if (!$this instanceof ProjectIndependantCommandInterface) {
             if (!is_dir('./deckle')) {
-                $this->error('No "./deckle" folder found. You may need to bootstrap your project.');
+                Deckle::error('No "./deckle" folder found. You may need to bootstrap your project.');
             }
         }
 
@@ -116,8 +117,8 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
             './deckle.local.yml'
         ];
 
-        if ($this->output->isVeryVerbose()) {
-            $this->output->writeln("<info>Loading configuration files...</info>");
+        if (Deckle::isVeryVerbose()) {
+            Deckle::print("<info>Loading configuration files...</info>");
         }
 
         $conf = [];
@@ -125,16 +126,16 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
 
         foreach ($configFiles as $configFile) {
             if (file_exists($this->fs()->expandTilde($configFile))) {
-                if ($this->output->isVeryVerbose()) {
-                    $this->output->writeln("Loading configuration file <comment>" . $configFile . "</comment>");
+                if (Deckle::isVeryVerbose()) {
+                    Deckle::print("Loading configuration file <comment>" . $configFile . "</comment>");
                 }
                 $loadedConf = $this->configService->load($this->fs()->expandTilde($configFile));
 
                 $conf = $this->configService->merge($conf, $loadedConf);
                 $loadedFiles++;
             } else {
-                if ($this->output->isVeryVerbose()) {
-                    $this->output->note('Missing configuration file <info>' . $configFile . '</info>');
+                if (Deckle::isVeryVerbose()) {
+                    Deckle::note('Missing configuration file <info>' . $configFile . '</info>');
                 }
             }
         }
@@ -142,7 +143,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         if (!$this instanceof ProjectIndependantCommandInterface) {
 
             if (!isset($conf['project']['name'])) {
-                $this->error('Missing project name in configuration!');
+                Deckle::error('Missing project name in configuration!');
             }
         }
 
@@ -150,7 +151,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         try {
             $this->config->hydrate($conf);
         } catch (DeckleException $e) {
-            $this->error($e->getMessage());
+            Deckle::error($e->getMessage());
         }
 
     }
@@ -191,7 +192,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     {
 
         if (isset($this->currentlyResolving[$placeholder->getRaw()])) {
-            $this->error('Circular resolution detected while resolving "%s"', [$placeholder->getRaw()]);
+            Deckle::error('Circular resolution detected while resolving "%s"', [$placeholder->getRaw()]);
         }
         $this->currentlyResolving[$placeholder->getRaw()] = true;
 
@@ -212,7 +213,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
                 break;
 
             default:
-                $this->error(
+                Deckle::error(
                     'Unknown placeholder type "%s" in placeholder "%s"',
                     [
                         $placeholder->getType(),
@@ -230,7 +231,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         }
 
         if (!$silent) {
-            $this->error('Unable to resolve value for placeholder "%s"', [$placeholder->getRaw()]);
+            Deckle::error('Unable to resolve value for placeholder "%s"', [$placeholder->getRaw()]);
         }
 
         return '';
@@ -299,9 +300,9 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         });
         $displayedMessage = vsprintf($message, $vars);
 
-        $this->output()->error($displayedMessage);
+        Deckle::error($displayedMessage);
 
-        if ($this->output->isVeryVerbose()) {
+        if (Deckle::isVeryVerbose()) {
             $e = new DeckleException($exceptionParams);
             throw $e;
         }
@@ -323,7 +324,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         $message = implode(PHP_EOL, (array)$message);
         $displayedMessage = vsprintf($message, $vars);
 
-        $this->output->warning($displayedMessage);
+        Deckle::warning($displayedMessage);
 
         exit(0);
     }
@@ -347,9 +348,9 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
             if (!$value && $ignoreMissing && !in_array($placeholder->getRaw(), $ignoreExceptions)) {
                 continue;
             }
-            if ($this->output->isVeryVerbose()) {
-                $this->output->writeln(sprintf('Replacing "<info>%s</info>" placeholder with resolved value "<info>%s</info>"',
-                    $placeholder->getRaw(), $value));
+            if (Deckle::isVeryVerbose()) {
+                Deckle::print('Replacing "<info>%s</info>" placeholder with resolved value "<info>%s</info>"',
+                    [$placeholder->getRaw(), $value]);
             }
             $template = $manager->substitutePlaceholder($template, $placeholder, $value);
         }
@@ -371,10 +372,10 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         $ignoreExceptions = []
     ) {
         if (!is_file($templateFile)) {
-            $this->error('Template file "%s" does not exist', [$templateFile]);
+            Deckle::error('Template file "%s" does not exist', [$templateFile]);
         }
         if (!is_dir($target) && !is_dir(dirname($target))) {
-            $this->error('Target directory for copying to "%s" does not exist', [$target]);
+            Deckle::error('Target directory for copying to "%s" does not exist', [$target]);
         }
 
         $template = file_get_contents($templateFile);
@@ -402,22 +403,6 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         return $version;
     }
 
-
-    /**
-     * @param $question
-     * @param bool $default
-     * @return bool
-     */
-    protected function confirm($question, bool $default = false): bool
-    {
-        $helper = $this->getHelper('question');
-        $defaultChoice = ($default) ? '[Yn]' : '[yN]';
-        $question = new ConfirmationQuestion('<question>' . $question . ' ' . $defaultChoice . '</question> ',
-            $default);
-
-        return $helper->ask($this->input, $this->output, $question);
-    }
-
     /**
      * @return bool
      */
@@ -435,6 +420,23 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         $this->sh()->completeDeckleMachineLocation($machine);
 
         return $machine;
+    }
+
+    protected function runCommand($commandName, array $params = [])
+    {
+        if ($commandName) {
+            $command = $this->getApplication()->find($commandName);
+        }
+
+        if (!$command) {
+            Deckle::error('Unknown command: "%s"', [$commandName]);
+        }
+
+        $command->setConfig($this->getConfig());
+
+        $input = new ArrayInput($params);
+        $input->setInteractive(isset($params['--no-interaction']) ? !$params['--no-interaction'] : true);
+        $command->run($input, $this->output);
     }
 
 }

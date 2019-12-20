@@ -4,6 +4,8 @@
 namespace Adimeo\Deckle\Command\Mutagen;
 
 
+use Adimeo\Deckle\Deckle;
+use Adimeo\Deckle\Service\Shell\Script\Location\LocalPath;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -21,7 +23,7 @@ class Sync extends AbstractMutagenCommand
         $this->setName('mutagen:sync')
             ->setAliases(['sync'])
             ->setDescription('Mutagen sessions controller')
-            ->addOption('force', 'f', InputOption::VALUE_NONE,'Force action (make "start" restart if already running)')
+            ->addOption('force', 'f', InputOption::VALUE_NONE, 'Force action (make "start" restart if already running)')
             ->addArgument('cmd', InputArgument::REQUIRED, 'mutagen operation to execute (start, stop, restart');
     }
 
@@ -30,7 +32,7 @@ class Sync extends AbstractMutagenCommand
         $this->actualOutput = $output;
 
         if (!is_file('deckle/mutagen.yml')) {
-            $this->error('No deckle/mutagen.yml file was found. Cannot control mutagen for this project.');
+            Deckle::error('No deckle/mutagen.yml file was found. Cannot control mutagen for this project.');
         }
 
 
@@ -38,7 +40,7 @@ class Sync extends AbstractMutagenCommand
         $cmd = $input->getArgument('cmd');
 
 
-        if($cmd == 'start' && $input->getOption('force')) {
+        if ($cmd == 'start' && $input->getOption('force')) {
             if ($running) {
                 $cmd = 'restart';
             } else {
@@ -50,32 +52,35 @@ class Sync extends AbstractMutagenCommand
 
             case 'restart':
                 if ($running) {
-                    $this->output->writeln('Restarting <info>mutagen</info> project...');
+                    Deckle::print('Restarting <info>mutagen</info> project...');
                     system('mutagen project terminate deckle/mutagen.yml');
                     system('mutagen project start deckle/mutagen.yml');
                     break;
                 } else {
-                    $this->output->writeln('<info>mutagen</info> session(s) not running. Starting sessions...');
-                    $cmd = 'start';
+                    Deckle::print('<info>mutagen</info> session(s) not running. Starting sessions...');
+                    $this->sh()->exec('mutagen project start', new LocalPath('./deckle'), false);
+                    Deckle::runCommand('mutagen:monitor', ['--until-synced']);
                 }
 
 
             case 'start':
                 if ($running) {
-                    $this->output->writeln('<info>mutagen</info> session(s) already up');
+                    Deckle::print('<info>mutagen</info> session(s) already up');
                     return 0;
                 }
-                system('mutagen project start deckle/mutagen.yml');
+                Deckle::print('Starting <info>mutagen</info> session(s)...');
+                $this->sh()->exec('mutagen project start', new LocalPath('./deckle'), false);
+                Deckle::runCommand('mutagen:monitor', ['--until-synced']);
                 break;
 
             case 'stop':
             case 'terminate':
                 if (!$running) {
-                    $this->output->writeln('<info>mutagen</info> session(s) not running');
+                    Deckle::print('<info>mutagen</info> session(s) not running');
                     return 0;
                 }
-                system('mutagen project terminate deckle/mutagen.yml');
-                $this->output->writeln('<info>mutagen</info> session(s) terminated');
+                Deckle::print('Terminating <info>mutagen</info> session(s)');
+                $this->sh()->exec('mutagen project terminate', new LocalPath('./deckle'), false);
                 break;
 
             case 'status':
@@ -83,7 +88,7 @@ class Sync extends AbstractMutagenCommand
                 break;
 
             default:
-                $this->error('Unknown mutagen operation "%s"', [$cmd]);
+                Deckle::error('Unknown mutagen operation "%s"', [$cmd]);
                 break;
         }
     }
@@ -91,28 +96,30 @@ class Sync extends AbstractMutagenCommand
 
     protected function displayStatus($extended = false)
     {
-
-
         if (!$this->isMutagenUp()) {
-            $this->output->writeln("<info>mutagen</info> seems not to be running. Run <comment>deckle sync start</comment> to start your synchronisation sessions.");
+            Deckle::halt('Mutagen seems not to be running. You may should run "deckle sync start"');
         }
 
         $sessions = $this->fetchSessionsStatus();
 
+        if (!$sessions) {
+            Deckle::halt("There is no active Mutagen sessions. You are probably not in a Deckle project.");
+        }
+
         foreach ($sessions as $session => $info) {
-            $this->output->writeln(sprintf('Session <info>%s</info>: ' . "     \t" . '<comment>%s</comment>', $session,
+            Deckle::print(sprintf('Session <info>%s</info>: ' . "     \t" . '<comment>%s</comment>', $session,
                 $info['Status']));
             if ($extended) {
-                $this->output->writeln(str_repeat(" ", 2) . "<info>Alpha</info>:");
+                Deckle::print(str_repeat(" ", 2) . "<info>Alpha</info>:");
                 foreach ($info['alpha'] as $item => $value) {
-                    $this->output->writeln(sprintf(str_repeat(" ", 4) . "%s: <comment>%s</comment>", $item, $value));
+                    Deckle::print(sprintf(str_repeat(" ", 4) . "%s: <comment>%s</comment>", $item, $value));
                 }
 
-                $this->output->writeln(str_repeat(" ", 2) . "<info>Beta</info>:");
+                Deckle::print(str_repeat(" ", 2) . "<info>Beta</info>:");
                 foreach ($info['beta'] as $item => $value) {
-                    $this->output->writeln(sprintf(str_repeat(" ", 4) . "%s: <comment>%s</comment>", $item, $value));
+                    Deckle::print(sprintf(str_repeat(" ", 4) . "%s: <comment>%s</comment>", $item, $value));
                 }
-                $this->output->writeln("----------------------------------------");
+                Deckle::print("----------------------------------------");
             }
 
         }

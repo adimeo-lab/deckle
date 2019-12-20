@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Command\Mutagen;
 
 
+use Adimeo\Deckle\Deckle;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -12,11 +13,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class Monitor extends AbstractMutagenCommand
 {
-    /**
-     * @var OutputInterface
-     */
-    protected $actualOutput;
-
     protected function configure()
     {
         $this->setName('mutagen:monitor')
@@ -28,14 +24,13 @@ class Monitor extends AbstractMutagenCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $this->actualOutput = $output;
 
         if (!is_file('deckle/mutagen.yml')) {
-            $this->error('No deckle/mutagen.yml file was found. Cannot monitor mutagen.');
+            Deckle::error('No deckle/mutagen.yml file was found. Cannot monitor mutagen.');
         }
 
         if (!$this->isMutagenUp()) {
-            $this->halt('Mutagen is not running. Please use "deckle sync start" to start the sync sessions.');
+            Deckle::halt('Mutagen is not running. Please use "deckle sync start" to start the sync sessions.');
         }
 
         $untilSynced = $input->getOption('until-sync');
@@ -45,13 +40,29 @@ class Monitor extends AbstractMutagenCommand
         $sections = [];
         $firstLoop = true;
 
-        $consoleOutput = new ConsoleOutput();
-
-
         while ($running = $this->isMutagenUp()) {
             $synced = [];
             $sessions = $this->fetchSessionsStatus();
             $matchingSessions = 0;
+
+            // compute padding
+            $padding = 0;
+            $conflicted = false;
+            foreach($sessions as $session => $infos) {
+                $padding = strlen($session) > $padding ? strlen($session) + 1 : $padding;
+                if(isset($infos['conflicted'])) $conflicted = true;
+            }
+
+            if ($firstLoop && $sessions) {
+                $infoSection = Deckle::console()->section();
+                $s = $frequency > 1 ? 's' : '';
+                $message = 'Monitoring Mutagen (refresh every <info>' . $frequency . '</info> second' . $s .')';
+                $infoSection->overwrite(PHP_EOL . $message);
+                $spacer = Deckle::console()->section()->writeln('');
+                if($conflicted) {
+                    $infoSection->writeln('<error>One or more session is in conflict. You should restart and/or clear your sessions.</error>');
+                }
+            }
 
             foreach ($sessions as $session => $info) {
                 if (!preg_match('/' . $sessionsToMonitor . '/', $session)) {
@@ -60,12 +71,13 @@ class Monitor extends AbstractMutagenCommand
                 $matchingSessions++;
                 $synced[$session] = $info['Status'] == 'Watching for changes';
                 if (!isset($sections[$session])) {
-                    $sections[$session] = $consoleOutput->section();
+                    $sections[$session] = Deckle::console()->section();
                     $sections[$session]->writeLn('Fetching session <info>' . $session . '</info> status...');
                 }
                 $section = $sections[$session];
-                $section->overwrite(sprintf('Session <info>%s</info>: ' . "     \t" . '<comment>%s</comment>',
-                    $session, $info['Status']));
+                $style = isset($info['conflicted']) ? 'error' : 'info';
+                $section->overwrite(sprintf('Session <%s>% -' . $padding . 's</%1$s>' . " => " . '<comment>%s</comment>',
+                    $style, $session, $info['Status']));
             }
 
             if ($untilSynced && count(array_filter($synced)) == count($synced)) {
@@ -77,7 +89,7 @@ class Monitor extends AbstractMutagenCommand
                 if (isset($infoSection)) {
                     $infoSection->overwrite($message);
                 } else {
-                    $this->output->writeln($message);
+                    Deckle::print($message);
                 }
                 return 0;
             };
@@ -88,26 +100,23 @@ class Monitor extends AbstractMutagenCommand
             }
 
             if ($firstLoop) {
-                $infoSection = $consoleOutput->section();
-                $message = 'Monitoring Mutagen sessions every <info>' . $frequency . '</info> second. ';
+                $footerSection = Deckle::console()->section();
                 if ($untilSynced) {
-                    $message .= 'Monitor will quit once session(s) are in sync.';
+                    $message = 'Monitor will quit once session(s) are in sync.';
                 } else {
-                    $message .= 'Hit Ctrl+C to quit monitor.';
+                    $message = 'Hit Ctrl+C to quit monitor.';
                 }
-                $infoSection->overwrite(PHP_EOL . $message);
+                $footerSection->overwrite(PHP_EOL . $message);
                 $firstLoop = false;
             }
-
-
             sleep($frequency);
         }
 
         if ($noMatch) {
-            $this->output->warning('No session matches requested pattern: "' . $input->getArgument('session') . '"');
+            Deckle::warning('No session matches requested pattern: "' . $input->getArgument('session') . '"');
             return 1;
         } else {
-            $this->output->warning('No more session is running.');
+            Deckle::warning('No more session is running.');
         }
         return 0;
     }

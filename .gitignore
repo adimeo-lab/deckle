@@ -57,7 +57,7 @@
 
 .idea
 deckle.local.yml
-deckle
-deckle.yml
-resources/cache/
+./deckle
+./deckle.yml
+
 var/log/

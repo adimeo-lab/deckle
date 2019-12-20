@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Command\Drupal8;
 
 
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\Config\DeckleConfig;
 use Adimeo\Deckle\Service\Misc\ArrayTool;
 use Adimeo\Deckle\Service\Shell\Script\Location\AppContainer;
@@ -32,7 +33,7 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
 
             $command = 'vendor/bin/drush sql:dump | gzip > /tmp/deckle-dump.sql.gz';
 
-            $output->writeln('Importing database from <info>' . $config['reference']['host'] . '</info>...');
+            Deckle::print('Importing database from <info>' . $config['reference']['host'] . '</info>...');
             $section = $output->section();
 
             $section->overwrite('<comment>Generating dump on remote host...</comment>');
@@ -58,50 +59,10 @@ class Drupal8ImportReferenceDb extends AbstractDrupal8Command
         } finally {
             // delete dump on reference
             $command = '[ -f deckle-dump.sql.gz ] && rm deckle-dump.sql.gz';
-            $this->output->setVerbosity(OutputInterface::VERBOSITY_QUIET);
+            Deckle::setVerbosity(OutputInterface::VERBOSITY_QUIET);
             $this->sh()->exec($command, new SshHost($config['reference']['host'], '~', $config['reference']['user']));
             if(isset($localDump) && file_exists($localDump)) unlink($localDump);
         }
     }
 
-    protected function fillConfigFromReferenceSettings(DeckleConfig $config)
-    {
-
-        $host = $config['reference']['host'];
-        $user = $config['reference']['user'];
-        $source = $config['reference']['path'] . '/web/sites/default/settings.local.php';
-        $target = tempnam(sys_get_temp_dir(), 'reference_');
-
-        // $scpCommand = 'scp ' . $user . '@' . $host . ':"' . $source . '" "' . $target . '"';
-
-        $return = $this->sh()->scp(new SshHost($host, $source, $user), new LocalPath($target));
-
-        try {
-            if ($return->isErrored() || !is_file($target)) {
-                throw new \Exception('Unable to fetch remote settings.local.php content');
-            }
-            require $target;
-            unlink($target);
-        } catch (\Throwable $e) {
-            throw $e;
-        } finally {
-            if (file_exists($target)) {
-                unlink($target);
-            }
-        }
-
-        if (!isset($databases)) {
-            $this->output->writeln('<danger>No database configuration found in reference configuration</danger>');
-            return $config;
-        } else {
-            $updatedConfig = [
-                'reference' => [
-                    'db' => array_merge($databases['default']['default'],
-                        ArrayTool::filterRecursive($config['reference']['db']) ?? [])
-                ]
-            ];
-            $config->hydrate($updatedConfig);
-
-        }
-    }
 }

@@ -6,6 +6,7 @@ namespace Adimeo\Deckle\Command\Docker;
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Deckle;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -25,7 +26,7 @@ class Docker extends AbstractDeckleCommand implements ProjectIndependantCommandI
 
         $dockerHost = $this->getConfig('docker.host');
         if(!$dockerHost) {
-            $this->error('Docker Host is not set in Deckle configuration');
+            Deckle::error('Docker Host is not set in Deckle configuration');
         }
         putenv("DOCKER_HOST=$dockerHost");
 

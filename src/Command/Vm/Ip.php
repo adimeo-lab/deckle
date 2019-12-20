@@ -6,6 +6,7 @@ namespace Adimeo\Deckle\Command\Vm;
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Deckle;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -21,10 +22,10 @@ class Ip extends AbstractDeckleCommand implements ProjectIndependantCommandInter
     {
         $ip = $this->vm()->ip();
         if(!$ip) {
-            $this->error('Unable to extract your Deckle Machine IP address from your /etc/hosts file. Please ensure have entry for <comment>deckle-vm</comment> in this file.');
+            Deckle::error('Unable to extract your Deckle Machine IP address from your /etc/hosts file. Please ensure have entry for <comment>deckle-vm</comment> in this file.');
         }
 
-        $output->writeln(sprintf('Your Deckle Machine IP address is <info>%s</info>', $ip));
+        Deckle::print(sprintf('Your Deckle Machine IP address is <info>%s</info>', $ip));
     }
 
 }

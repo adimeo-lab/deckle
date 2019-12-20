@@ -5,6 +5,7 @@ namespace Adimeo\Deckle\Command\Drupal8;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Deckle;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -36,7 +37,7 @@ class Drupal8Init extends AbstractDrupal8Command
             return 0;
         }
 
-        $output->writeln('Initializing Drupal 8 project <comment>' . $this->config['project']['name'] . '</comment>');
+        Deckle::print('Initializing Drupal 8 project <comment>' . $this->config['project']['name'] . '</comment>');
 
         $this->generateLocalSettings();
 
@@ -47,14 +48,14 @@ class Drupal8Init extends AbstractDrupal8Command
     protected function generateLocalSettings()
     {
 
-        if ($this->output->confirm('Do you want to generate your "local.settings.php" file?')) {
+        if (Deckle::confirm('Do you want to generate your "local.settings.php" file?')) {
             if ($this->runCommand('drupal8:generate:settings') === 0) {
-                $this->output->writeln('<info>done...</info>');
+                Deckle::print('<info>done...</info>');
             } else {
-                $this->output->writeln('<error>failed...</error>');
+                Deckle::print('<error>failed...</error>');
             }
         }else {
-            $this->output->writeln('<comment>skipped...</comment>');
+            Deckle::print('<comment>skipped...</comment>');
         }
     }
 
@@ -67,7 +68,7 @@ class Drupal8Init extends AbstractDrupal8Command
             $input->setInteractive(!$this->input->getOption('no-interaction'));
             return $command->run($input, $this->output);
         } else {
-            $this->error('Command "' . $commandName . '" not found');
+            Deckle::error('Command "' . $commandName . '" not found');
         }
     }
 

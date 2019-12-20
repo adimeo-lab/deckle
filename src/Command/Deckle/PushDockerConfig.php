@@ -5,6 +5,7 @@ namespace Adimeo\Deckle\Command\Deckle;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
 use Adimeo\Deckle\Service\Shell\Script\Location\LocalPath;
@@ -35,7 +36,7 @@ class PushDockerConfig extends AbstractDeckleCommand
         if(!$return->isErrored()) {
             if(!$input->getOption('reset')) {
                 if($input->isInteractive()) {
-                    $this->halt('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
+                    Deckle::halt('Project already exists on VM. Please use the "--reset" switch to clear previous remote environment.');
                 } else {
                     return -1;
                 }
@@ -44,13 +45,13 @@ class PushDockerConfig extends AbstractDeckleCommand
                  // delete remote environment
                  $return = $this->sh()->exec('rm -rf ' . $this->config['docker']['path'], new DeckleMachine());
                  if($return->isErrored()) {
-                     $this->error('An error occurred while deleting remote directory "%s"', [$this->config['docker']['path']]);
+                     Deckle::error('An error occurred while deleting remote directory "%s"', [$this->config['docker']['path']]);
                  }
              }
         }
 
         // copy Docker configuration to remote environment
-        $output->writeln(sprintf('Pushing <comment>deckle/docker</comment> to <comment>%s</comment> in Deckle Machine', $this->config['docker']['path']));
+        Deckle::print('Pushing <comment>deckle/docker</comment> to <comment>%s</comment> in Deckle Machine', $this->config['docker']['path']);
         $this->sh()->scp(new LocalPath('deckle/docker'), new DeckleMachine($this->getConfig('docker.path')));
 
     }

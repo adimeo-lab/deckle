@@ -8,7 +8,7 @@ use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Helper\ConfigHelper;
 use Adimeo\Deckle\Command\Helper\TemplatesHelper;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
-use Adimeo\Deckle\Service\Config\DeckleConfig;
+use Adimeo\Deckle\Deckle;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use Symfony\Component\Console\Input\ArrayInput;
@@ -16,15 +16,11 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\ConfirmationQuestion;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Filesystem\Filesystem;
 
 class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
-
-    use TemplatesHelper;
-
 
     protected function configure()
     {
@@ -56,7 +52,7 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
             $template = $input->getArgument('template');
 
             while (!$template) {
-                $template = $this->output->askQuestion(new Question('Please indicate which template to use (press enter to list available templates)'));
+                $template = Deckle::askQuestion(new Question('Please indicate which template to use (press enter to list available templates)'));
 
                 if (!$template) {
                     $command = $this->getApplication()->find('templates:list');
@@ -68,7 +64,7 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
         } catch (\Throwable $e) {
 
-            $this->error($e->getMessage());
+            Deckle::error($e->getMessage());
         }
     }
 
@@ -77,14 +73,15 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
         $fs = new Filesystem();
         $provider = $this->templates()->resolveTemplateProvider($template);
 
-        if (!$this->output->confirm('Are you sure you want to bootstrap your deckle project using <comment>' . $template . '</comment> from <comment>' . $provider . '</comment>')) {
-            $this->output->writeln('<info>Aborting</info>');
+        if (!Deckle::confirm('Are you sure you want to bootstrap your deckle project using <comment>' . $template . '</comment> from <comment>' . $provider . '</comment>')) {
+            Deckle::print('<info>Aborting</info>');
             return;
         } else {
             if (is_dir('./deckle')) {
 
                 if ($this->input->isInteractive() && !$this->input->getOption('reset')) {
-                    $reset = $this->output()->confirm('<comment>./deckle</comment> directory already exists. Do you want to <comment>reset</comment> it using selected template?', false);
+                    $reset = Deckle::confirm('<comment>./deckle</comment> directory already exists. Do you want to <comment>reset</comment> it using selected template?',
+                        false);
                 } else {
                     $reset = $this->input->getOption('reset');
                 }
@@ -92,7 +89,7 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
                 if ($reset) {
                     $fs->remove('./deckle');
                 } else {
-                    $this->output->writeln('<info>Bootstrap aborted by user because of an existing deckle installation.</info>');
+                    Deckle::print('<info>Bootstrap aborted by user because of an existing deckle installation.</info>');
                     exit;
                 }
             }
@@ -100,10 +97,12 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
         mkdir('./deckle/.template', 0755, true);
         try {
-            if ($this->output->isVerbose()) {
-                $this->output->writeln('Copying template <info>' . str_replace($this->fs()->expandTilde('~'),
-                        '~', $this->templates()->resolveTemplatePath($template,
-                            $provider)) . '</info> to <comment>deckle project directory</comment> (' . realpath('./deckle/.template') . ')');
+            if (Deckle::isVerbose()) {
+                $templateDisplayableName = str_replace($this->fs()->expandTilde('~'),
+                    '~', $this->templates()->resolveTemplatePath($template,
+                        $provider));
+
+                Deckle::print('Copying template <info>%s</info> to <info>deckle project directory</info> (%s)', [$templateDisplayableName, realpath('./deckle/.template')]);
             }
 
             $fs->mirror($this->templates()->resolveTemplatePath($template, $provider), './deckle/.template');
@@ -123,16 +122,14 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
 
                     if (!is_dir($targetDirectory)) {
-                        if ($this->output->isVerbose()) {
-                            $this->output->writeln(sprintf('Creating target directory "<info>%s</info>"',
-                                $targetDirectory));
+                        if (Deckle::isVerbose()) {
+                            Deckle::print('Creating target directory "<info>%s</info>"', $targetDirectory);
                         }
                         mkdir($targetDirectory, 0755, true);
                     }
 
-                    if ($this->output->isVerbose()) {
-                        $this->output->writeln(sprintf('Copying "<info>%s</info>" to "<info>%s</info>"', $source,
-                            $targetFile));
+                    if (Deckle::isVerbose()) {
+                        Deckle::print('Copying "<info>%s</info>" to "<info>%s</info>"', [$source, $targetFile]);
                     }
 
                     // return mime type ala mimetype extension
@@ -153,7 +150,7 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
 
 
             file_put_contents('deckle/.template/.deckle.lock', $provider . ':' . $template);
-            $this->output->success([
+            Deckle::success([
                 'Done importing template!',
                 'You should now adapt config in "./deckle/deckle.yml',
                 'or create a "./deckle.local.yml" file to tune the default config.',

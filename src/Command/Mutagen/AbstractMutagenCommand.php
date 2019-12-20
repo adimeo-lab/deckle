@@ -5,9 +5,18 @@ namespace Adimeo\Deckle\Command\Mutagen;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
+use Adimeo\Deckle\Exception\DeckleException;
 
+/**
+ * Class AbstractMutagenCommand
+ * @package Adimeo\Deckle\Command\Mutagen
+ */
 class AbstractMutagenCommand extends AbstractDeckleCommand
 {
+    /**
+     * @return bool
+     * @throws DeckleException
+     */
     protected function isMutagenUp()
     {
         $return = $this->sh()->exec('mutagen project list deckle/mutagen.yml');
@@ -15,10 +24,16 @@ class AbstractMutagenCommand extends AbstractDeckleCommand
         return !$return->isErrored();
     }
 
-
-
+    /**
+     * @return array
+     * @throws DeckleException
+     */
     protected function fetchSessionsStatus()
     {
+        if (!$this->isMutagenUp()) {
+            return [];
+        }
+
         $return = $this->sh()->exec('mutagen project list deckle/mutagen.yml');
 
         $output = $return->getOutput();
@@ -60,6 +75,10 @@ class AbstractMutagenCommand extends AbstractDeckleCommand
                 continue;
             }
 
+            if($line == 'Conflicts:') {
+                $session['conflicted'] = true;
+            }
+
             if (preg_match('/^(\w*):$/', $line, $matches)) {
                 $section = strtolower($matches[1]);
                 if (!in_array($section, ['alpha', 'beta'])) {
@@ -97,7 +116,6 @@ class AbstractMutagenCommand extends AbstractDeckleCommand
                 $session[trim($info)] = trim($value);
                 continue;
             }
-
 
         }
 

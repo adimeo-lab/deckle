@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Service\Vm;
 
 
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\AbstractDeckleService;
 use Adimeo\Deckle\Service\Filesystem\FilesystemService;
@@ -59,7 +60,7 @@ class VmService extends AbstractDeckleService
      */
     protected function findVmAddressInHosts() : ?string
     {
-        if($this->output()->isVerbose()) $this->output()->writeln('Looking for <info>deckle-vm</info> in <info>/etc/hosts</info>');
+        if(Deckle::isVerbose()) Deckle::print('Looking for <info>deckle-vm</info> in <info>/etc/hosts</info>');
         $entries = file('/etc/hosts');
         foreach ($entries as $entry) {
             if (strpos(trim($entry), '#') === 0) {
@@ -82,7 +83,7 @@ class VmService extends AbstractDeckleService
      */
     protected function findVmAddressFromVBoxManage() : ?string
     {
-        if($this->output()->isVeryVerbose()) $this->output()->writeln('Looking for <info>deckle-vm</info> IP using <info>VBoxManage</info>');
+        if(Deckle::isVeryVerbose()) Deckle::print('Looking for <info>deckle-vm</info> IP using <info>VBoxManage</info>');
         if($this->isRunningOnVbox()) {
             $return = $this->sh()->exec('VBoxManage guestproperty enumerate deckle-vm');
 

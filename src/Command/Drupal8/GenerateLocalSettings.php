@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Command\Drupal8;
 
 
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -24,7 +25,7 @@ class GenerateLocalSettings extends AbstractDrupal8Command
     {
         $templateFile = $input->getOption('template');
         if(!is_file($templateFile)) {
-            $this->error('Template file "%s" not found', [$templateFile]);
+            Deckle::error('Template file "%s" not found', [$templateFile]);
         }
         $this->copyTemplateFile($templateFile, 'web/sites/default/settings.local.php');
     }

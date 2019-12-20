@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Service\Shell;
 
 
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\AbstractDeckleService;
 use Adimeo\Deckle\Service\Docker\DockerTrait;
@@ -32,9 +33,9 @@ class ShellService extends AbstractDeckleService
         }
 
         // handle silent dynamically
-        if ($this->output()->isVeryVerbose()) {
+        if (Deckle::isVeryVerbose()) {
             $silent = false;
-        } elseif ($this->output()->isQuiet()) {
+        } elseif (Deckle::isQuiet()) {
             $silent = true;
         }
 
@@ -61,11 +62,7 @@ class ShellService extends AbstractDeckleService
 
     protected function execLocally($script, LocalPath $target, $silent)
     {
-        if ($silent && !$this->output()->isVerbose()) {
-            $silence = ' 2>&1 > /dev/null ';
-        } else {
-            $silence = '';
-        }
+
 
         if ($target->getPath() != '.') {
             $cwd = 'cd ' . $target->getPath() . ' && ';
@@ -73,16 +70,15 @@ class ShellService extends AbstractDeckleService
             $cwd = '';
         }
 
-        if ($this->output()->isVeryVerbose()) {
-            $this->output()->writeln(sprintf('Executing <info>%s</info> in <info>%s</info>', $script,
-                $target->getPath()));
+        if (Deckle::isVeryVerbose()) {
+            Deckle::print('Executing <info>%s</info> in <info>%s</info>', [$script, $target->getPath()]);
         }
 
 
         if ($silent) {
             // TODO find a way to prevent exec() output to be dumped in terminal but get collected in $output
             // with commands like scp
-            exec($cwd . $script . $silence, $output, $return);
+            exec($cwd . $script , $output, $return);
 
         } else {
             $output = [system($cwd . $script, $return)];
@@ -102,7 +98,7 @@ class ShellService extends AbstractDeckleService
         $port = $target->getPort();
 
         if (!$host) {
-            $this->output()->error('Missing "host" in SshHost location');
+            Deckle::error('Missing "host" in SshHost location');
             return -1;
         }
 
@@ -126,8 +122,8 @@ class ShellService extends AbstractDeckleService
         $return = $this->exec($sshCommand, new LocalPath('.'), $silent);
 
         if ($return->isErrored()) {
-            if ($this->output()->isVerbose()) {
-                $this->output()->warning(array_merge(['Something went wrong while executing a command on a remote host...'],
+            if (Deckle::isVerbose()) {
+                Deckle::warning(array_merge(['Something went wrong while executing a command on a remote host...'],
                     $return->getOutput()));
             }
         }
@@ -143,7 +139,7 @@ class ShellService extends AbstractDeckleService
         $containerId = $this->docker()->getContainerId($container->getName());
 
         if (!$containerId) {
-            $this->output()->error('Unknown container ' . $container->getName());
+            Deckle::error('Unknown container ' . $container->getName());
             return -1;
         }
 
@@ -154,8 +150,8 @@ class ShellService extends AbstractDeckleService
         } else {
             $cmd = 'docker exec -t ' . $containerId . ' bash -c ' . escapeshellarg($cwd . $script);
         }
-        if ($this->output()->isVeryVerbose()) {
-            $this->output()->writeln('Executing <comment>' . $cmd . '</comment> on Docker remote host <comment>' . $this->getConfig('docker.host') . '</comment>');
+        if (Deckle::isVeryVerbose()) {
+            Deckle::print('Executing <comment>' . $cmd . '</comment> on Docker remote host <comment>' . $this->getConfig('docker.host') . '</comment>');
         }
 
         // handle Docker Environment
@@ -171,8 +167,8 @@ class ShellService extends AbstractDeckleService
         $return = new ShellScriptReturn($return, $output);
 
         if ($return->isErrored()) {
-            if ($this->output()->isVerbose()) {
-                $this->output()->warning(array_merge(['Something went wrong while executing a command in a container...'],
+            if (Deckle::isVerbose()) {
+                Deckle::warning(array_merge(['Something went wrong while executing a command in a container...'],
                     $return->getOutput()));
             }
         }
@@ -197,8 +193,8 @@ class ShellService extends AbstractDeckleService
         $return = $this->exec($scpCommand);
 
         if ($return->isErrored()) {
-            if ($this->output()->isVerbose()) {
-                $this->output()->warning(array_merge(['Something went wrong while executing a scp command...'],
+            if (Deckle::isVerbose()) {
+                Deckle::warning(array_merge(['Something went wrong while executing a scp command...'],
                     $return->getOutput()));
             }
         }
@@ -238,8 +234,8 @@ class ShellService extends AbstractDeckleService
 
 
         $command = sprintf('%s %s %s', $cpCommand, $sourcePath, $targetPath);
-        if($this->output()->isVeryVerbose()) {
-            $this->output()->writeln('Copying <info>' . $sourcePath . '</info> to <info>' . $targetPath . '</info> using <info>' . $cpCommand .'</info>');
+        if(Deckle::isVeryVerbose()) {
+            Deckle::print('Copying <info>' . $sourcePath . '</info> to <info>' . $targetPath . '</info> using <info>' . $cpCommand .'</info>');
         }
         return $this->exec($command);
 

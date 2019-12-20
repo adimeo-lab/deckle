@@ -36,6 +36,7 @@ use Adimeo\Deckle\Command\Vm\AddKnownHost;
 use Adimeo\Deckle\Command\Vm\Ip;
 use Adimeo\Deckle\Command\Vm\Ssh;
 use Adimeo\Deckle\Command\Vm\SshCopyId;
+use Adimeo\Deckle\Service\Config\DeckleConfig;
 use ErrorException;
 use ObjectivePHP\DocuMentor\ReflectionFile;
 use ObjectivePHP\ServicesFactory\ServicesFactory;
@@ -45,6 +46,7 @@ use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Finder\Finder;
 
@@ -52,13 +54,18 @@ class Deckle extends Application
 {
 
     /** @var ServicesFactory */
-    protected $container;
+    static protected $container;
 
     /** @var InputInterface */
     protected static $input;
 
     /** @var SymfonyStyle */
     protected static $output;
+
+    /**
+     * @var ConsoleOutput
+     */
+    protected static $consoleOutput;
 
     /**
      * @override
@@ -78,15 +85,17 @@ class Deckle extends Application
         // @codeCoverageIgnoreEnd
         );
 
-        $this->container = new ServicesFactory();
+        self::$container = new ServicesFactory();
 
+        self::$container->registerService(['id' => 'app', 'instance' => $this]);
 
         $this->registerNativeCommands();
-
         $this->registerLocalCommands();
+
 
         parent::__construct($name, $version);
     }
+
 
     /**
      * @override
@@ -117,19 +126,11 @@ class Deckle extends Application
         OutputInterface $output = null
     ) {
 
-        $output = $output ?: new ConsoleOutput();
-        $output->getFormatter()->setStyle(
-            'error',
-            new OutputFormatterStyle('red')
-        );
+        $output = self::console();
 
-        $output->getFormatter()->setStyle(
-            'question',
-            new OutputFormatterStyle('white', 'cyan')
-        );
 
         self::$input = $input ?? new ArrayInput([]);
-        self::$output = new SymfonyStyle(self::$input,$output);
+        self::$output = new SymfonyStyle(self::$input, $output);
 
         return parent::run($input, $output);
     }
@@ -185,35 +186,205 @@ class Deckle extends Application
         ];
 
         foreach ($commands as $command) {
-            $this->add($this->container->get($command));
+            $this->add(self::$container->get($command));
         }
     }
 
     protected function registerLocalCommands()
     {
         $finder = new Finder();
-        if(is_dir('./deckle/commands')) {
-            foreach($finder->in('./deckle/commands')->name('*Command.php') as $commandFile) {
+        if (is_dir('./deckle/commands')) {
+            foreach ($finder->in('./deckle/commands')->name('*Command.php') as $commandFile) {
                 try {
                     require $commandFile;
                     $command = new ReflectionFile($commandFile);
                     $this->add($this->container->get($command->getName()));
                 } catch (\Throwable $e) {
-                    $output = new SymfonyStyle(new ArrayInput([]), new ConsoleOutput());
-                    $output->warning($e);
+                    Deckle::error('Unable to load local command file "%s"', $commandFile, false, $e);
                 }
             }
         }
     }
 
-    public static function input() : InputInterface
+    public static function input(): InputInterface
     {
         return self::$input ?? new ArrayInput([]);
     }
 
-    public static function output() : OutputInterface
+
+    /**
+     * @return SymfonyStyle
+     */
+    public static function output(): OutputInterface
     {
         return self::$output ?? new SymfonyStyle(self::input(), new ConsoleOutput());
+    }
+
+    static private function write($method, $message, $vars = [], $quit = false, \Throwable $e = null)
+    {
+        if (is_scalar($vars)) {
+            $vars = [$vars];
+        }
+
+        if (is_object($vars) && method_exists($vars, '__toString')) {
+            $vars = [(string)$vars];
+        }
+
+        if (!is_array($vars)) {
+            self::error('Values for placeholders must be a scalar or an array');
+        }
+
+        if (is_array($message)) {
+            $message = implode(PHP_EOL, $message);
+        }
+
+        if (!method_exists(self::output(), $method)) {
+            $method = 'error';
+            $message = 'Unknown output method "%s"' . PHP_EOL . 'Original message: ' . PHP_EOL . $message;
+            array_unshift($vars, $method);
+        }
+
+        try {
+            self::output()->$method(vsprintf($message, $vars));
+        } catch (\ErrorException $e) {
+            $backtrace = debug_backtrace();
+            foreach ($backtrace as $trace) {
+                break;
+            }
+
+            self::print('<error>Incomplete message (missing variables)</error> in "<info>%s</info>"', [$message]);
+            if (isset($trace)) {
+                self::print('<comment>This message was output from class %s </comment>', [$trace['class']]);
+            }
+        }
+        if ($quit !== false && $quit !== 0 && isset($e) && self::output()->isVeryVerbose()) {
+            self::print('A <info>%s</info> exception was thrown in <info>%s</info>:<info>%s</info>',
+                [get_class($e), $e->getFile(), $e->getLine()]);
+            self::output()->writeln($e->getMessage());
+            self::output()->writeln($e->getTraceAsString());
+        }
+
+        if ($quit !== false) {
+            exit((int)$quit);
+        }
+    }
+
+
+    static public function print($message, $vars = [], $returnCode = false)
+    {
+        self::write('writeLn', $message, $vars, $returnCode);
+    }
+
+    static public function br()
+    {
+        self::print('');
+    }
+
+    static public function success($message, $vars = [], $returnCode = 0)
+    {
+        self::write('success', $message, $vars, $returnCode);
+    }
+
+    static public function warning($message, $vars = [], $returnCode = false)
+    {
+        self::write('warning', $message, $vars, $returnCode);
+    }
+
+    static public function error($message, $vars = [], $returnCode = false)
+    {
+        if ($returnCode instanceof \Throwable) {
+            $e = $returnCode;
+            $returnCode = $e->getCode();
+        }
+
+        self::write('error', $message, $vars, $e ?? null);
+
+    }
+
+    static public function halt($message, $vars = [], $returnCode = 1)
+    {
+        self::warning($message, $vars, $returnCode);
+    }
+
+    static public function note($message, $vars = [], $returnCode = false)
+    {
+        self::write('note', $message, $vars, $returnCode);
+    }
+
+    static public function isVerbose(): bool
+    {
+        return self::output()->isVerbose();
+    }
+
+    static public function isVeryVerbose(): bool
+    {
+        return self::output()->isVeryVerbose();
+    }
+
+    static public function isQuiet(): bool
+    {
+        return self::output()->isQuiet();
+    }
+
+    static public function getVerbosity(): bool
+    {
+        return self::output()->getVerbosity();
+    }
+
+    static public function setVerbosity(isnt $verbosity): bool
+    {
+        return self::output()->setVerbosity($verbosity);
+    }
+
+    static public function confirm($question, $default = true)
+    {
+        return self::output()->confirm($question, $default);
+    }
+
+    static public function prompt($question, $default, $hidden = false)
+    {
+        $question = new Question($question, $default);
+        $method = $hidden ? 'askHidden' : 'askQuestion';
+        return self::output()->$method($question, $default);
+    }
+
+    static public function runCommand(string $commandName, array $params = [])
+    {
+        /** @var Deckle $application */
+        $application = self::$container->get('app');
+        $command = $application->find($commandName);
+
+        if (!$command) {
+            Deckle::error('Unknown command: %s', [$commandName]);
+        }
+
+        $command->setConfig(self::$container->get(DeckleConfig::class));
+
+        $input = new ArrayInput($params);
+        $input->setInteractive(isset($params['--no-interaction']) ? !$params['--no-interaction'] : true);
+        $command->run($input, self::$output);
+    }
+
+    /**
+     * @return ConsoleOutput
+     */
+    public static function console()
+    {
+        if (is_null(self::$consoleOutput)) {
+            $output = new ConsoleOutput();
+            $output->getFormatter()->setStyle(
+                'error',
+                new OutputFormatterStyle('red')
+            );
+
+            $output->getFormatter()->setStyle(
+                'question',
+                new OutputFormatterStyle('white', 'cyan')
+            );
+            self::$consoleOutput = $output;
+        }
+
+        return self::$consoleOutput;
     }
 
 }

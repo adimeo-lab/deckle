@@ -21,7 +21,7 @@ class Cli extends AbstractDeckleCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $output->writeln('Executing <comment>php</comment> on remote container');
+        Deckle::print('Executing <comment>php</comment> on remote container');
         $path = $this->config['app']['path'];
         $this->dockerExec('php ', implode(' ', $this->input->getArgument('args')), $path);
     }

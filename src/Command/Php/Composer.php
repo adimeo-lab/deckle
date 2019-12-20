@@ -41,7 +41,7 @@ class Composer extends AbstractDeckleCommand
                 break;
 
             default:
-                $output->writeln('Executing <comment>composer</comment> on remote container');
+                Deckle::print('Executing <comment>composer</comment> on remote container');
                 $this->sh()->exec('composer ' . implode(' ', $args), new Container($path));
                 break;
         }

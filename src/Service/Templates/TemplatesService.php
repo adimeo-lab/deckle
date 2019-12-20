@@ -5,14 +5,17 @@ namespace Adimeo\Deckle\Service\Templates;
 
 
 use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\AbstractDeckleService;
 use Adimeo\Deckle\Service\Filesystem\FilesystemTrait;
 use Adimeo\Deckle\Service\Git\GitTrait;
 use Adimeo\Deckle\Service\Shell\Script\Location\LocalPath;
+use Adimeo\Deckle\Service\Shell\ShellTrait;
 
 class TemplatesService extends AbstractDeckleService
 {
     use FilesystemTrait;
+    use ShellTrait;
     use GitTrait;
 
     public function getPath()
@@ -22,40 +25,42 @@ class TemplatesService extends AbstractDeckleService
 
     public function fetch()
     {
+        $cacheDirectory = $this->fs()->expandTilde(Install::DECKLE_HOME . '/cache');
+        if(!file_exists($cacheDirectory)) {
+            $return = $this->sh()->exec('mkdir ' . $cacheDirectory);
+            if($return->isErrored()) {
+                Deckle::halt('Unable to create cache directory "%s"', $cacheDirectory);
+            } else {
+                Deckle::print('Directory <info>%s</info> successfully created.', $cacheDirectory);
+            }
+        }
         $repositories = $this->getConfig('providers', []);
-
         if (!$repositories) {
-            $this->output()->warning('No providers are defined in Deckle configuration');
+            Deckle::warning('No providers are defined in Deckle configuration');
         } else {
-            $this->output()->writeln('Fetching project <info>templates</info>...');
+            Deckle::print('Fetching project <info>templates</info>...');
             foreach ($repositories as $repository) {
 
                 $targetRepository = $this->sanitizeProviderName($repository);
 
                 if (!is_dir($targetRepository)) {
-                    $operation = 'cloning';
+                    Deckle::print("\t" . 'Cloning templates from <info>%s</info>...', $repository);
                     $return = $this->git()->clone('git clone ' . escapeshellarg($repository), new LocalPath($targetRepository));
 
                 } else {
                     if (!$this->git()->isUpToDate(new LocalPath($targetRepository))) {
-                        if ($this->output()->isVerbose()) {
-                            $this->output()->writeln('Updating <info>' . $repository . '</info>');
+                        if (Deckle::isVerbose()) {
+                            Deckle::print('Updating <info>%s</info>', $repository);
                         }
-                        $operation = 'pulling';
                         $return = $this->callFrom($targetRepository, 'git pull');
                     } else {
                         $return = 0;
-                        $this->output()->writeln("\t" . '<info>' . $repository . '</info> is up to date');
+                        Deckle::print("\t" . '<info>' . $repository . '</info> is up to date');
                     }
                 }
 
                 if ($return) {
-                    $this->error(
-                        'Something went wrong while %s "%s". You should maybe reinstall Deckle...',
-                        [
-                            $operation,
-                            $repository
-                        ]);
+                    Deckle::error('Something went wrong while fetching templates. You should maybe reinstall Deckle...');
                 }
             }
 
@@ -105,7 +110,7 @@ class TemplatesService extends AbstractDeckleService
             $providers = (array)$providers;
             foreach ($providers as $provider) {
                 if (!in_array($provider, $availableProviders)) {
-                    $this->error('Unknown provider "%s". Please specify a provider among available ones (%s)',
+                    Deckle::error('Unknown provider "%s". Please specify a provider among available ones (%s)',
                         [$provider, implode(', ', [$availableProviders])]);
                 }
             }

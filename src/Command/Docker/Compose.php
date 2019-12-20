@@ -40,8 +40,8 @@ class Compose extends AbstractDeckleCommand
      */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        $silent = false;
         $args = implode(' ', $input->getArgument('args'));
-        $silent = $output->isQuiet();
 
         $this->sh()->exec('docker-compose ' . $args, new DeckleMachine($this->getConfig('docker.path')), $silent);
     }

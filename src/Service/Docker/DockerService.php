@@ -4,6 +4,7 @@
 namespace Adimeo\Deckle\Service\Docker;
 
 
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\AbstractDeckleService;
 use Adimeo\Deckle\Service\Shell\Script\Location\Container;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
@@ -39,7 +40,7 @@ class DockerService extends AbstractDeckleService
     {
         $url = $this->getConfig('docker.host');
         if (!$url) {
-            $this->output()->error('No Docker Host found in config.');
+            Deckle::error('No Docker Host found in config.');
             exit (-1);
         }
         $url .= '/containers/json';
@@ -58,7 +59,7 @@ class DockerService extends AbstractDeckleService
                 }
             }
         } else {
-            $this->output()->error('Something went wrong while fetching containers infos on ' . $url);
+            Deckle::error('Something went wrong while fetching containers infos on ' . $url);
         }
 
         return false;

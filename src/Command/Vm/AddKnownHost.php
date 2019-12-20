@@ -7,6 +7,7 @@ namespace Adimeo\Deckle\Command\Vm;
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Deckle\InstallMacOs;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,12 +31,12 @@ class AddKnownHost extends AbstractDeckleCommand implements ProjectIndependantCo
         $user = $config['vm']['user'] ?? null;
 
         if(!$host || !$user) {
-            $this->error('No Deckle Machine configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
+            Deckle::error('No Deckle Machine configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
         }
 
         $newHost = $input->getArgument('host');
 
-        $output->writeln('Adding a <info>' . $newHost . '</info> to Deckle Machine known SSH hosts...');
+        Deckle::print('Adding a <info>' . $newHost . '</info> to Deckle Machine known SSH hosts...');
         $this->sh()->exec(sprintf('ssh-keyscan -H %s >> ~/.ssh/known_hosts', $newHost), new DeckleMachine());
     }
 

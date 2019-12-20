@@ -112,8 +112,10 @@ class AbstractMutagenCommand extends AbstractDeckleCommand
                 if (strpos($line, "\t") === 0) {
                     continue;
                 }
-                [$info, $value] = explode(':', $line, 2);
-                $session[trim($info)] = trim($value);
+                if(strpos($line, ':')) {
+                    [$info, $value] = explode(':', $line, 2);
+                    $session[trim($info)] = trim($value);
+                }
                 continue;
             }
 

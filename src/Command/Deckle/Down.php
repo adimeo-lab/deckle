@@ -26,11 +26,10 @@ class Down extends AbstractDeckleCommand
 
         Deckle::print('Stopping project <info>%s</info>', $conf['project']['name']);
 
-        $this->runCommand('sync', ['--no-interaction' => true, 'cmd' => 'stop']);
-        $this->runCommand('dc', ['--no-interaction' => true, 'args' => ['stop']]);
+        Deckle::runCommand('sync', ['--no-interaction' => true, 'cmd' => 'stop']);
+        Deckle::runCommand('dc', ['--no-interaction' => true, 'args' => ['stop']]);
 
-        Deckle::print('<info>Project stopped!</info>');
+        Deckle::success('Project stopped!');
     }
-
 
 }

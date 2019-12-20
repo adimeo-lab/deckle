@@ -14,20 +14,20 @@ class GenerateLocalSettings extends AbstractDrupal8Command
 {
     protected function configure()
     {
-        $this->setName('drupal8:generate:settings')
-            ->setAliases(['d8:gls'])
-            ->addOption('template', 't',InputOption::VALUE_OPTIONAL, 'Template file to generate settings.local.php', 'deckle/settings.local.dist.php')
-            ->setDescription('Generate settings.local.php using deckle configuration');
+        $this->setName('drupal8:gls')
+            ->setDescription('Generate "settings.local.php" using Deckle project configuration');
 
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $templateFile = $input->getOption('template');
+        $templateFile = 'deckle/settings.local.dist.php';
         if(!is_file($templateFile)) {
             Deckle::error('Template file "%s" not found', [$templateFile]);
         }
         $this->copyTemplateFile($templateFile, 'web/sites/default/settings.local.php');
+
+        return 0;
     }
 
 

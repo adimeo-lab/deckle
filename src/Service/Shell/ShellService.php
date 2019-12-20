@@ -78,7 +78,7 @@ class ShellService extends AbstractDeckleService
         if ($silent) {
             // TODO find a way to prevent exec() output to be dumped in terminal but get collected in $output
             // with commands like scp
-            exec($cwd . $script , $output, $return);
+            exec($cwd . $script . ' 2>&1', $output, $return);
 
         } else {
             $output = [system($cwd . $script, $return)];
@@ -188,7 +188,7 @@ class ShellService extends AbstractDeckleService
 
         $args = '-r';
 
-        $scpCommand = 'scp ' . $args . ' "' . $source->getFullyQualifiedPath() . '" "' . $destination->getFullyQualifiedPath() . '"';
+        $scpCommand = 'scp ' . $args . ' "' . $source->getFullyQualifiedPath() . '" "' . $destination->getFullyQualifiedPath() . '" 2>&1';
 
         $return = $this->exec($scpCommand);
 

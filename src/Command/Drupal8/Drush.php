@@ -28,7 +28,7 @@ class Drush extends AbstractDrupal8Command
 
         $path = $this->config['app']['path'];
 
-        $this->sh()->exec('vendor/bin/drush' .  implode(' ', $this->input->getArgument('args')), new AppContainer($path), false);
+        $this->sh()->exec('vendor/bin/drush ' .  implode(' ', $this->input->getArgument('args')), new AppContainer($path), false);
     }
 
 

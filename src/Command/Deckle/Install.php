@@ -6,6 +6,7 @@ namespace Adimeo\Deckle\Command\Deckle;
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
+use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
@@ -64,8 +65,6 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
         Deckle::success([
             'Deckle has been successfully installed on your computer.',
             'You can open now an ssh session by using "deckle vm:ssh" (passwd: deckle)',
-            'For more convenience, add your SSH key to your Deckle Machine by running:',
-            'deckle vm:ssh:copy-id',
             'You should be able to test it by accessing http://portainer.deckle.local']);
     }
 

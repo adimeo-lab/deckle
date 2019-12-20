@@ -37,7 +37,7 @@ class Drupal8Init extends AbstractDrupal8Command
             return 0;
         }
 
-        Deckle::print('Initializing Drupal 8 project <comment>' . $this->config['project']['name'] . '</comment>');
+        Deckle::print('Initializing Drupal 8 project <info>' . $this->config['project']['name'] . '</info>');
 
         $this->generateLocalSettings();
 
@@ -47,29 +47,8 @@ class Drupal8Init extends AbstractDrupal8Command
 
     protected function generateLocalSettings()
     {
-
-        if (Deckle::confirm('Do you want to generate your "local.settings.php" file?')) {
-            if ($this->runCommand('drupal8:generate:settings') === 0) {
-                Deckle::print('<info>done...</info>');
-            } else {
-                Deckle::print('<error>failed...</error>');
-            }
-        }else {
-            Deckle::print('<comment>skipped...</comment>');
-        }
+        Deckle::runCommand('drupal8:gls');
     }
 
-    protected function runCommand($commandName, $arguments = [])
-    {
-        $command = $this->getApplication()->find($commandName);
-        if($command) {
-            if($command instanceof AbstractDeckleCommand && $this->hasConfig()) $command->setConfig($this->getConfig());
-            $input = new ArrayInput($arguments);
-            $input->setInteractive(!$this->input->getOption('no-interaction'));
-            return $command->run($input, $this->output);
-        } else {
-            Deckle::error('Command "' . $commandName . '" not found');
-        }
-    }
 
 }

@@ -41,18 +41,18 @@ class TemplatesService extends AbstractDeckleService
             Deckle::print('Fetching project <info>templates</info>...');
             foreach ($repositories as $repository) {
 
-                $targetRepository = $this->sanitizeProviderName($repository);
+                $targetRepository = $cacheDirectory . '/' . $this->sanitizeProviderName($repository);
 
                 if (!is_dir($targetRepository)) {
                     Deckle::print("\t" . 'Cloning templates from <info>%s</info>...', $repository);
-                    $return = $this->git()->clone('git clone ' . escapeshellarg($repository), new LocalPath($targetRepository));
+                    $return = $this->git()->clone($repository, new LocalPath(dirname($targetRepository)), $this->sanitizeProviderName($repository));
 
                 } else {
                     if (!$this->git()->isUpToDate(new LocalPath($targetRepository))) {
                         if (Deckle::isVerbose()) {
                             Deckle::print('Updating <info>%s</info>', $repository);
                         }
-                        $return = $this->callFrom($targetRepository, 'git pull');
+                        $return = $this->git()->pull(new LocalPath($targetRepository));
                     } else {
                         $return = 0;
                         Deckle::print("\t" . '<info>' . $repository . '</info> is up to date');

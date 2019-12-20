@@ -55,11 +55,12 @@ class Sync extends AbstractMutagenCommand
                     Deckle::print('Restarting <info>mutagen</info> project...');
                     system('mutagen project terminate deckle/mutagen.yml');
                     system('mutagen project start deckle/mutagen.yml');
+                    Deckle::runCommand('mutagen:monitor', ['--until-sync' => true]);
                     break;
                 } else {
                     Deckle::print('<info>mutagen</info> session(s) not running. Starting sessions...');
                     $this->sh()->exec('mutagen project start', new LocalPath('./deckle'), false);
-                    Deckle::runCommand('mutagen:monitor', ['--until-synced']);
+                    Deckle::runCommand('mutagen:monitor', ['--until-sync' => true]);
                 }
 
 
@@ -70,7 +71,7 @@ class Sync extends AbstractMutagenCommand
                 }
                 Deckle::print('Starting <info>mutagen</info> session(s)...');
                 $this->sh()->exec('mutagen project start', new LocalPath('./deckle'), false);
-                Deckle::runCommand('mutagen:monitor', ['--until-synced']);
+                Deckle::runCommand('mutagen:monitor', ['--until-sync' => true]);
                 break;
 
             case 'stop':
@@ -107,8 +108,9 @@ class Sync extends AbstractMutagenCommand
         }
 
         foreach ($sessions as $session => $info) {
-            Deckle::print(sprintf('Session <info>%s</info>: ' . "     \t" . '<comment>%s</comment>', $session,
-                $info['Status']));
+            $style = isset($info['conflicted']) ? 'error' : 'info';
+            Deckle::print('Session <%s>%s</%1$s>' . " => " . '<comment>%s</comment>', [$style, $session,
+                $info['Status']]);
             if ($extended) {
                 Deckle::print(str_repeat(" ", 2) . "<info>Alpha</info>:");
                 foreach ($info['alpha'] as $item => $value) {

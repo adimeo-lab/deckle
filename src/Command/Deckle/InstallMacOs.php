@@ -92,6 +92,7 @@ END;
         $this->setUpHosts();
         $this->installDnsmasq();
         $this->setUpResolver();
+        $this->copyId();
 
         return 0;
     }
@@ -301,6 +302,15 @@ END;
             ]);
         } else {
             Deckle::warning('It seems like something went wrong while provisioning or starting the VM. Please che Vagrant output and logs.');
+        }
+    }
+
+    protected function copyId()
+    {
+        if(is_file($this->fs()->expandTilde('~/.ssh/id_rsa'))) {
+            Deckle::runCommand('vm:ssh:copy-id');
+        } else {
+            Deckle::note(['No RSA key detected.', 'You should create one and copy it to your', 'Deckle Machine using "deckle vm:ssh:copy-id"']);
         }
     }
 }

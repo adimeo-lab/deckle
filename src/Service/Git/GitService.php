@@ -29,7 +29,7 @@ class GitService extends AbstractDeckleService
         return !$return->isErrored();
     }
 
-    public function clone(string $repository, ShellScriptLocationInterface $location)
+    public function clone(string $repository, ShellScriptLocationInterface $location, $as = '')
     {
         if (!$location instanceof LocalPath) {
             Deckle::halt('Cloning git repositories is currently only supported to local paths');
@@ -39,7 +39,7 @@ class GitService extends AbstractDeckleService
             Deckle::print('Cloning <info>' . $repository . '</info> in <info>' . $location->getPath() . '</info>');
         }
 
-        $this->sh()->exec(sprintf('git clone %s %s', $repository, $location->getFullyQualifiedPath()));
+        $this->sh()->exec(sprintf('git clone %s %s', $repository,$as), $location);
     }
 
     public function pull(ShellScriptLocationInterface $location)

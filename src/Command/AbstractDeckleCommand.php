@@ -422,21 +422,4 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         return $machine;
     }
 
-    protected function runCommand($commandName, array $params = [])
-    {
-        if ($commandName) {
-            $command = $this->getApplication()->find($commandName);
-        }
-
-        if (!$command) {
-            Deckle::error('Unknown command: "%s"', [$commandName]);
-        }
-
-        $command->setConfig($this->getConfig());
-
-        $input = new ArrayInput($params);
-        $input->setInteractive(isset($params['--no-interaction']) ? !$params['--no-interaction'] : true);
-        $command->run($input, $this->output);
-    }
-
 }

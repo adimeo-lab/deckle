@@ -5,7 +5,7 @@ namespace Adimeo\Deckle\Command\Vm;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
-use Adimeo\Deckle\Command\Deckle\InstallMacOs;
+use Adimeo\Deckle\Command\Deckle\Installer\MacOsInstaller;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
@@ -31,7 +31,7 @@ class AddKnownHost extends AbstractDeckleCommand implements ProjectIndependantCo
         $user = $config['vm']['user'] ?? null;
 
         if(!$host || !$user) {
-            Deckle::error('No Deckle Machine configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [InstallMacOs::DECKLE_HOME]);
+            Deckle::error('No Deckle Machine configuration found. If you\‘re outside of a Deckle project, please define vm[host] and vm[user] in your %s/deckle.local.yml configuration file.', [MacOsInstaller::DECKLE_HOME]);
         }
 
         $newHost = $input->getArgument('host');

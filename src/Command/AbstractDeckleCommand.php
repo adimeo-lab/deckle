@@ -45,11 +45,11 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     /**
      * @var InputInterface
      */
-    protected $input;
+    static protected $input;
     /**
      * @var SymfonyStyle
      */
-    protected $output;
+    static protected $output;
 
     /** @var array */
     protected $currentlyResolving = [];
@@ -93,8 +93,8 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
      */
     public function initialize(InputInterface $input, OutputInterface $output)
     {
-        $this->input = $input;
-        $this->output = new SymfonyStyle($input, $output);
+        Deckle::input($input);
+        Deckle::output(new SymfonyStyle($input, $output));
 
         if (!$this instanceof ProjectIndependantCommandInterface) {
             if (!is_dir('./deckle')) {
@@ -209,7 +209,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
                 $helper = $this->getHelper('question');
                 $question = new Question($placeholder->getParams()[0],
                     $placeholder->getParams()['default'] ?? null);
-                $value = $helper->ask($this->input, $this->output, $question);
+                $value = $helper->ask(self::$input, self::$output, $question);
                 break;
 
             default:
@@ -240,17 +240,17 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     /**
      * @return SymfonyStyle
      */
-    protected function output()
+    static protected function output()
     {
-        return $this->output;
+        return self::$output;
     }
 
     /**
      * @return InputInterface
      */
-    protected function input()
+    static protected function input()
     {
-        return $this->input;
+        return self::$input;
     }
 
     /**

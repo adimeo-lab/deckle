@@ -13,12 +13,6 @@ use Symfony\Component\Console\Output\OutputInterface;
 class Update extends AbstractDeckleCommand
 {
 
-    /** @var OutputInterface */
-    protected $output;
-
-    /** @var InputInterface */
-    protected $input;
-
     protected function configure()
     {
         parent::configure();

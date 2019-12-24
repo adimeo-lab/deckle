@@ -22,10 +22,10 @@ class Ip extends AbstractDeckleCommand implements ProjectIndependantCommandInter
     {
         $ip = $this->vm()->ip();
         if(!$ip) {
-            Deckle::error('Unable to extract your Deckle Machine IP address from your /etc/hosts file. Please ensure have entry for <comment>deckle-vm</comment> in this file.');
+            Deckle::error('Unable to extract your Deckle Machine IP address from your /etc/hosts file. Please ensure have entry for "deckle-vm" in this file.');
         }
 
-        Deckle::print(sprintf('Your Deckle Machine IP address is <info>%s</info>', $ip));
+        Deckle::print('Your Deckle Machine IP address is <info>%s</info>', $ip);
     }
 
 }

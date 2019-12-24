@@ -43,7 +43,7 @@ class AbstractDeckleService implements DeckleServiceInterface, ContainerAwareInt
      */
     public function input(): InputInterface
     {
-        return Deckle::input();
+        return Deckle::input(null);
     }
 
     /**

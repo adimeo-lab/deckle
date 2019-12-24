@@ -27,7 +27,8 @@ class ShellService extends AbstractDeckleService
         string $script,
         ShellScriptLocationInterface $location = null,
         $silent = true
-    ): ShellScriptReturnInterface {
+    ): ShellScriptReturnInterface
+    {
         if (is_null($location)) {
             $location = new LocalPath('.');
         }
@@ -205,11 +206,11 @@ class ShellService extends AbstractDeckleService
     public function cp(ShellScriptLocationInterface $source, ShellScriptLocationInterface $target)
     {
 
-        if($source instanceof AppContainer) {
+        if ($source instanceof AppContainer) {
             $source->setName($this->docker()->getAppContainerId());
         }
 
-        if($target instanceof AppContainer) {
+        if ($target instanceof AppContainer) {
             $target->setName($this->docker()->getAppContainerId());
         }
 
@@ -234,8 +235,8 @@ class ShellService extends AbstractDeckleService
 
 
         $command = sprintf('%s %s %s', $cpCommand, $sourcePath, $targetPath);
-        if(Deckle::isVeryVerbose()) {
-            Deckle::print('Copying <info>' . $sourcePath . '</info> to <info>' . $targetPath . '</info> using <info>' . $cpCommand .'</info>');
+        if (Deckle::isVeryVerbose()) {
+            Deckle::print('Copying <info>' . $sourcePath . '</info> to <info>' . $targetPath . '</info> using <info>' . $cpCommand . '</info>');
         }
         return $this->exec($command);
 

@@ -6,7 +6,7 @@ namespace Adimeo\Deckle\Command\Apps;
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Deckle\Install;
-use Adimeo\Deckle\Command\Deckle\InstallMacOs;
+use Adimeo\Deckle\Command\Deckle\Installer\MacOsInstaller;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;
 use Symfony\Component\Console\Input\InputArgument;

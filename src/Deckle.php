@@ -12,7 +12,8 @@ use Adimeo\Deckle\Command\Deckle\DbImport;
 use Adimeo\Deckle\Command\Deckle\Down;
 use Adimeo\Deckle\Command\Deckle\Init;
 use Adimeo\Deckle\Command\Deckle\Install;
-use Adimeo\Deckle\Command\Deckle\InstallMacOs;
+use Adimeo\Deckle\Command\Deckle\Installer\LinuxInstaller;
+use Adimeo\Deckle\Command\Deckle\Installer\MacOsInstaller;
 use Adimeo\Deckle\Command\Deckle\PushDockerConfig;
 use Adimeo\Deckle\Command\Deckle\Selfupdate;
 use Adimeo\Deckle\Command\Deckle\Status;
@@ -29,6 +30,7 @@ use Adimeo\Deckle\Command\Mutagen\Monitor;
 use Adimeo\Deckle\Command\Mutagen\Sync;
 use Adimeo\Deckle\Command\Php\Cli;
 use Adimeo\Deckle\Command\Php\Composer;
+use Adimeo\Deckle\Command\Symfony\SfInit;
 use Adimeo\Deckle\Command\Templates\ListTemplates;
 use Adimeo\Deckle\Command\Templates\Update;
 use Adimeo\Deckle\Command\Vagrant\Vagrant;
@@ -145,7 +147,8 @@ class Deckle extends Application
             Status::class,
             Init::class,
             Install::class,
-            InstallMacOs::class,
+            MacOsInstaller::class,
+            LinuxInstaller::class,
             PushDockerConfig::class,
             ListTemplates::class,
             Update::class,
@@ -167,6 +170,9 @@ class Deckle extends Application
             Drupal8Init::class,
             Drush::class,
             GenerateLocalSettings::class,
+
+            // Symfony
+            SfInit::class,
 
             // Mutagen
             Sync::class,
@@ -206,8 +212,10 @@ class Deckle extends Application
         }
     }
 
-    public static function input(): InputInterface
+    public static function input(InputInterface $input = null): InputInterface
     {
+        if($input) self::$input = $input;
+
         return self::$input ?? new ArrayInput([]);
     }
 
@@ -215,9 +223,10 @@ class Deckle extends Application
     /**
      * @return SymfonyStyle
      */
-    public static function output(): OutputInterface
+    public static function output(OutputInterface $output = null): OutputInterface
     {
-        return self::$output ?? new SymfonyStyle(self::input(), new ConsoleOutput());
+        if($output) self::$output = $output;
+        return self::$output ?? new SymfonyStyle(self::input(null), new ConsoleOutput());
     }
 
     static private function write($method, $message, $vars = [], $quit = false, \Throwable $e = null)
@@ -341,7 +350,7 @@ class Deckle extends Application
         return self::output()->confirm($question, $default);
     }
 
-    static public function prompt($question, $default, $hidden = false)
+    static public function prompt($question, $default = '', $hidden = false)
     {
         $question = new Question($question, $default);
         $method = $hidden ? 'askHidden' : 'askQuestion';

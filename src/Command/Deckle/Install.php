@@ -24,6 +24,7 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
     {
         $this->setName('install')
             ->setDescription('Install or reinstall Deckle environment and VM')
+            ->addOption('reset', null, InputOption::VALUE_NONE, 'Should existing configuration be overwritten?');
         ;
     }
 
@@ -40,14 +41,14 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
                 break;
 
             default:
-                $os = 'unsupported';
                 return 1;
         }
 
-        $initCommand = 'install:' . $os;
-        $command = $this->getApplication()->find($initCommand);
-
-        if(!$command) {
+        try {
+            $initCommand = 'install:' . $os;
+            $command = $this->getApplication()->find($initCommand);
+        }
+        catch(\Throwable $e) {
             Deckle::error('Unsupported OS', [$os]);
             return 1;
         }
@@ -58,8 +59,7 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
             'command' => $initCommand
         ];
 
-        $input = new ArrayInput($arguments);
-        $input->setInteractive($this->input->isInteractive());
+
         $command->run($input, $output);
 
         Deckle::success([

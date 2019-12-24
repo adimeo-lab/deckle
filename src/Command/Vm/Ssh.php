@@ -5,7 +5,7 @@ namespace Adimeo\Deckle\Command\Vm;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
-use Adimeo\Deckle\Command\Deckle\InstallMacOs;
+use Adimeo\Deckle\Command\Deckle\Installer\MacOsInstaller;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Service\Shell\Script\Location\DeckleMachine;

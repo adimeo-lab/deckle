@@ -253,10 +253,17 @@ Traefik est le reverse proxy qui permet d'accèder aux différents container via
 http://traefik.deckle.local
 
 
-## phpMyAdmin (pour MySQL 5.7)
+## MySQL 5.7
 
+Une instance de phpMyAdmin configurée pour accéder au serveur MySQL 5.7 est disponible à l'adresse suivante :
 
 http://pma57.deckle.local
+
+Toutefois, il est également possible (et préférable) de configurer un client plus classique (comme MySQL Workbench) en utilisant les informations de connexion suivantes :
+
+ - hôte : `mysql57.deckle.local` (attention, depuis les autres containers, il faut utiliser `mysql57` uniquement)
+ - user : root
+ - pass : root
 
 ## Maildev
 

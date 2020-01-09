@@ -26,7 +26,7 @@ class Composer extends AbstractDeckleCommand
     {
 
         $path = $this->config['app']['path'];
-        $args = $this->input->getArgument('args');
+        $args = $input->getArgument('args');
 
         switch($args[0] ?? false) {
 

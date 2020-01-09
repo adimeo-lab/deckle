@@ -5,18 +5,14 @@ namespace Adimeo\Deckle\Command\Deckle;
 
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
-use Adimeo\Deckle\Command\Helper\ConfigHelper;
-use Adimeo\Deckle\Command\Helper\TemplatesHelper;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Deckle;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Filesystem\Filesystem;
 
 class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
@@ -55,7 +51,7 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
                 $template = Deckle::prompt('Please indicate which template to use (press enter to list available templates)');
 
                 if (!$template) {
-                   Deckle::runCommand('templates:list');
+                    Deckle::runCommand('templates:list');
                 }
             }
 
@@ -78,11 +74,11 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
         } else {
             if (is_dir('./deckle')) {
 
-                if ($this->input->isInteractive() && !$this->input->getOption('reset')) {
+                if (Deckle::input()->isInteractive() && !Deckle::input()->getOption('reset')) {
                     $reset = Deckle::confirm('<comment>./deckle</comment> directory already exists. Do you want to <comment>reset</comment> it using selected template?',
                         false);
                 } else {
-                    $reset = $this->input->getOption('reset');
+                    $reset = Deckle::input()->getOption('reset');
                 }
 
                 if ($reset) {
@@ -101,7 +97,8 @@ class Bootstrap extends AbstractDeckleCommand implements ProjectIndependantComma
                     '~', $this->templates()->resolveTemplatePath($template,
                         $provider));
 
-                Deckle::print('Copying template <info>%s</info> to <info>deckle project directory</info> (%s)', [$templateDisplayableName, realpath('./deckle/.template')]);
+                Deckle::print('Copying template <info>%s</info> to <info>deckle project directory</info> (%s)',
+                    [$templateDisplayableName, realpath('./deckle/.template')]);
             }
 
             $fs->mirror($this->templates()->resolveTemplatePath($template, $provider), './deckle/.template');

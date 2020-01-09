@@ -117,9 +117,15 @@ END;
     {
         // check vagrant availability
         if (!$this->fs()->isInPath('vagrant')) {
-            Deckle::warning('vagrant binary is missing or not in your PATH. Please install vagrant from "https://www.vagrantup.com/downloads.html" and launch "install" again.');
-            return;
+            Deckle::print('Vagrant not detected. Trying to installing Vagrant.');
+            $return = $this->sh()->exec('sudo apt install vagrant');
+            if ($return->isErrored()) {
+                Deckle::warning('Vagrant installation seems to have failed. Please manually install Vagrant from "https://www.vagrantup.com/downloads.html" and run "deckle install" again.');
+                return;
+            }
+
         }
+
 
         // check vagrant folder
         $vagrantPath = $this->fs()->expandTilde('~/.deckle/vagrant');

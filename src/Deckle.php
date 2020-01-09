@@ -41,6 +41,7 @@ use Adimeo\Deckle\Command\Vm\SshCopyId;
 use Adimeo\Deckle\Service\Config\DeckleConfig;
 use ErrorException;
 use ObjectivePHP\DocuMentor\ReflectionFile;
+use ObjectivePHP\Events\EventsHandler;
 use ObjectivePHP\ServicesFactory\ServicesFactory;
 use Symfony\Component\Console\Application;
 use Symfony\Component\Console\Formatter\OutputFormatterStyle;
@@ -70,6 +71,11 @@ class Deckle extends Application
     protected static $consoleOutput;
 
     /**
+     * @var EventsHandler
+     */
+    protected static  $events;
+
+    /**
      * @override
      * @param string $name
      * @param string $version
@@ -88,6 +94,7 @@ class Deckle extends Application
         );
 
         self::$container = new ServicesFactory();
+        self::$events = new EventsHandler();
 
         self::$container->registerService(['id' => 'app', 'instance' => $this]);
 
@@ -96,6 +103,11 @@ class Deckle extends Application
 
 
         parent::__construct($name, $version);
+    }
+
+    public static function events()
+    {
+        return self::$events;
     }
 
 

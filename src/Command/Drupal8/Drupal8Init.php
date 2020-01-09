@@ -48,6 +48,10 @@ class Drupal8Init extends AbstractDrupal8Command
     protected function generateLocalSettings()
     {
         Deckle::runCommand('drupal8:gls');
+        Deckle::note([
+            'If your project needs a database, you may fetch it from a reference instance',
+            'To do so, please try running: "deckle db:import"'
+        ]);
     }
 
 

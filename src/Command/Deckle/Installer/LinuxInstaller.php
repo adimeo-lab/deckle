@@ -60,11 +60,13 @@ class LinuxInstaller extends AbstractUnixInstaller
 
         Deckle::print('Installing <info>mutagen</info> from <info>tarball</info>');
         $this->sh()->exec('sudo apt install wget');
-        $cwd = chdir('/tmp');
+        $cwd = getcwd();
+
+        chdir('/tmp');
         $this->sh()->exec('wget https://github.com/mutagen-io/mutagen/releases/download/v0.10.2/mutagen_linux_amd64_v0.10.2.tar.gz');
         $this->sh()->exec('tar -xf mutagen_linux_amd64_v0.10.2.tar.gz');
-        $this->exec('move mutagen /usr/local/bin');
-        $this->exec('move mutagen-agents.tar.gz /usr/local/bin');
+        $this->sh()->exec('mv mutagen /usr/local/bin');
+        $this->sh()->exec('mv mutagen-agents.tar.gz /usr/local/bin');
         $this->sh()->exec('rm mutagen_linux_amd64_v0.10.2.tar.gz');
         chdir($cwd);
     }

@@ -117,8 +117,8 @@ END;
     {
         // check vagrant availability
         if (!$this->fs()->isInPath('vagrant')) {
-            Deckle::print('Vagrant not detected. Trying to installing Vagrant.');
-            $return = $this->sh()->exec('sudo apt install vagrant');
+            Deckle::print('Vagrant not detected. Trying to install Vagrant.');
+            $return = $this->sh()->exec('sudo apt -y install vagrant', null, false);
             if ($return->isErrored()) {
                 Deckle::warning('Vagrant installation seems to have failed. Please manually install Vagrant from "https://www.vagrantup.com/downloads.html" and run "deckle install" again.');
                 return;

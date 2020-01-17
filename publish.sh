@@ -10,7 +10,7 @@ git tag -a "${TAG}"
 ./build.sh
 
 # push it
-git push --tags
+git remote | xargs -L1 -I R git push R --tags
 
 github-release upload \
   --owner=adimeo-lab \

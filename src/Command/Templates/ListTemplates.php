@@ -30,6 +30,7 @@ class ListTemplates extends AbstractDeckleCommand implements ProjectIndependantC
 
         $providers = $this->getConfig()['providers'];
 
+        $currentWorkingDirectory = getcwd();
         chdir($this->templates()->getPath() . '/cache');
         foreach ($providers as $provider) {
             Deckle::print('From <comment>' . $provider . '</comment>');
@@ -50,6 +51,8 @@ class ListTemplates extends AbstractDeckleCommand implements ProjectIndependantC
             }
         }
         Deckle::print('');
+
+        chdir($currentWorkingDirectory);
     }
 
 }

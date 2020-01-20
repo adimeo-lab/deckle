@@ -7,10 +7,8 @@ namespace Adimeo\Deckle\Service\Vm;
 use Adimeo\Deckle\Deckle;
 use Adimeo\Deckle\Exception\DeckleException;
 use Adimeo\Deckle\Service\AbstractDeckleService;
-use Adimeo\Deckle\Service\Filesystem\FilesystemService;
 use Adimeo\Deckle\Service\Filesystem\FilesystemTrait;
 use Adimeo\Deckle\Service\Shell\Script\Location\LocalPath;
-use Adimeo\Deckle\Service\Shell\ShellService;
 use Adimeo\Deckle\Service\Shell\ShellTrait;
 
 class VmService extends AbstractDeckleService
@@ -19,6 +17,20 @@ class VmService extends AbstractDeckleService
     use FilesystemTrait;
     use ShellTrait;
 
+    public function start (): bool {
+        if (!$this->isUp()) {
+            $return = $this->sh()->exec('VBoxManage startvm deckle-vm --type headless');
+            foreach ($return->getOutput() as $line) {
+                if(preg_match('/successfully\s+started./', $line)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        return true;
+    }
 
     /**
      * @return bool

@@ -38,6 +38,7 @@ use Adimeo\Deckle\Command\Vm\AddKnownHost;
 use Adimeo\Deckle\Command\Vm\Ip;
 use Adimeo\Deckle\Command\Vm\Ssh;
 use Adimeo\Deckle\Command\Vm\SshCopyId;
+use Adimeo\Deckle\Command\Vm\Start;
 use Adimeo\Deckle\Service\Config\DeckleConfig;
 use ErrorException;
 use ObjectivePHP\DocuMentor\ReflectionFile;
@@ -196,6 +197,7 @@ class Deckle extends Application
 
             // Vm
             Ip::class,
+            Start::class,
             Ssh::class,
             AddKnownHost::class,
             SshCopyId::class,

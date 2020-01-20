@@ -6,11 +6,12 @@ namespace Adimeo\Deckle\Command\Templates;
 
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\Deckle\Install;
+use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Deckle;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
-class Update extends AbstractDeckleCommand
+class Update extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
 
     protected function configure()

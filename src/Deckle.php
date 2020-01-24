@@ -223,14 +223,6 @@ class Deckle extends Application
         if (is_dir('./deckle/commands')) {
 
             $files = $finder->in('./deckle/commands')->files();
-
-            /** @var ConfigService $configService */
-            $configService = self::$container->get(ConfigService::class);
-            $config = $configService->load('./deckle/deckle.yml');
-
-            $loader = require dirname(__DIR__) . '/vendor/autoload.php';
-            $loader->setPsr4(sprintf('Adimeo\\Deckle\\Command\\%s\\', ucfirst($config['project']['type'])), '/deckle/commands');
-
             foreach ($files as $file) {
                 require $file;
                 $reflectionFile = new ReflectionFile($file);

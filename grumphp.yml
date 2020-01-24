@@ -1,0 +1,20 @@
+parameters:
+    bin_dir: vendor/bin
+    ascii:
+        succeeded: ~
+        failed: ~
+    tasks:
+        phpcs:
+            ignore_patterns:
+                - deckle.php
+            standard: []
+            severity: ~
+            error_severity: ~
+            warning_severity: ~
+            tab_width: ~
+            report: full
+            report_width: ~
+            encoding: ~
+            sniffs: []
+            triggered_by: [php]
+            exclude: []

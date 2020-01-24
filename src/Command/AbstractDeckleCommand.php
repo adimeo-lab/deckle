@@ -22,7 +22,6 @@ use Adimeo\Deckle\Service\Templates\TemplatesTrait;
 use Adimeo\Deckle\Service\Vm\VmTrait;
 use ObjectivePHP\ServicesFactory\ServicesFactory;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
@@ -30,6 +29,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
  * Class AbstractDeckleCommand
+ *
  * @package Adimeo\Deckle\Command
  */
 abstract class AbstractDeckleCommand extends Command implements ContainerAwareInterface
@@ -37,10 +37,14 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
 
     use ContainerAwareTrait;
 
-    /** @var ConfigService */
+    /**
+     * @var ConfigService 
+     */
     protected $configService;
 
-    /** @var DeckleConfig */
+    /**
+     * @var DeckleConfig 
+     */
     protected $config;
     /**
      * @var InputInterface
@@ -51,10 +55,14 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
      */
     static protected $output;
 
-    /** @var array */
+    /**
+     * @var array 
+     */
     protected $currentlyResolving = [];
 
-    /** @var PlaceholdersService */
+    /**
+     * @var PlaceholdersService 
+     */
     protected $placeholdersService;
 
     use ShellTrait;
@@ -66,8 +74,9 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
 
     /**
      * AbstractDeckleCommand constructor.
-     * @param ServicesFactory $servicesFactory
-     * @param ConfigService $configService
+     *
+     * @param ServicesFactory     $servicesFactory
+     * @param ConfigService       $configService
      * @param PlaceholdersService $placeholdersService
      */
     public function __construct(
@@ -87,8 +96,8 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
 
 
     /**
-     * @param InputInterface $input
-     * @param OutputInterface $output
+     * @param  InputInterface  $input
+     * @param  OutputInterface $output
      * @throws DeckleException
      */
     public function initialize(InputInterface $input, OutputInterface $output)
@@ -166,8 +175,8 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     }
 
     /**
-     * @param $key
-     * @param null $default
+     * @param  $key
+     * @param  null $default
      * @return DeckleConfig|null
      */
     public function getConfig($key = null, $default = null)
@@ -183,8 +192,8 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     }
 
     /**
-     * @param PlaceholderInterface $placeholder
-     * @param bool $silent Silently fails
+     * @param  PlaceholderInterface $placeholder
+     * @param  bool                 $silent      Silently fails
      * @return string
      * @throws DeckleException
      */
@@ -197,28 +206,31 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         $this->currentlyResolving[$placeholder->getRaw()] = true;
 
         switch ($placeholder->getType()) {
-            case 'env':
-                $value = $this->getEnvVariable($placeholder->getParams()[0]);
-                break;
+        case 'env':
+            $value = $this->getEnvVariable($placeholder->getParams()[0]);
+            break;
 
-            case 'conf':
-                $value = $this->getConfig($placeholder->getParams()[0]);
-                break;
+        case 'conf':
+            $value = $this->getConfig($placeholder->getParams()[0]);
+            break;
 
-            case 'ask':
-                $helper = $this->getHelper('question');
-                $question = new Question($placeholder->getParams()[0],
-                    $placeholder->getParams()['default'] ?? null);
-                $value = $helper->ask(self::$input, self::$output, $question);
-                break;
+        case 'ask':
+            $helper = $this->getHelper('question');
+            $question = new Question(
+                $placeholder->getParams()[0],
+                $placeholder->getParams()['default'] ?? null
+            );
+            $value = $helper->ask(self::$input, self::$output, $question);
+            break;
 
-            default:
-                Deckle::error(
-                    'Unknown placeholder type "%s" in placeholder "%s"',
-                    [
-                        $placeholder->getType(),
-                        $placeholder->getRaw()
-                    ]);
+        default:
+            Deckle::error(
+                'Unknown placeholder type "%s" in placeholder "%s"',
+                [
+                    $placeholder->getType(),
+                    $placeholder->getRaw()
+                ]
+            );
         }
         if (!$value) {
             if (isset($placeholder->getParams()['default'])) {
@@ -254,15 +266,17 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     }
 
     /**
-     * @param $param
+     * @param  $param
      * @throws DeckleException
      */
     protected function processPlaceholders($param)
     {
         $placeholders = $this->placeholdersService->extractPlaceholders($param);
         foreach ($placeholders as $placeholder) {
-            $param = $this->placeholdersService->substitutePlaceholder($param, $placeholder,
-                $this->resolvePlaceholderValue($placeholder));
+            $param = $this->placeholdersService->substitutePlaceholder(
+                $param, $placeholder,
+                $this->resolvePlaceholderValue($placeholder)
+            );
         }
     }
 
@@ -275,7 +289,7 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     }
 
     /**
-     * @param PlaceholdersService $placeholdersService
+     * @param  PlaceholdersService $placeholdersService
      * @return AbstractDeckleCommand
      */
     public function setPlaceholdersService(PlaceholdersService $placeholdersService): AbstractDeckleCommand
@@ -285,9 +299,9 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     }
 
     /**
-     * @param string $message
-     * @param array $vars
-     * @param int $returnCode
+     * @param  string $message
+     * @param  array  $vars
+     * @param  int    $returnCode
      * @throws DeckleException
      */
     protected function error(string $message, array $vars = [], $returnCode = -1)
@@ -295,9 +309,11 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         $exceptionParams = array_merge([$message], $vars);
         $messageParams = $vars;
 
-        array_walk($messageParams, function (&$param) {
-            $param = '<info>' . $param . '</info>';
-        });
+        array_walk(
+            $messageParams, function (&$param) {
+                $param = '<info>' . $param . '</info>';
+            }
+        );
         $displayedMessage = vsprintf($message, $vars);
 
         Deckle::error($displayedMessage);
@@ -318,9 +334,11 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     {
         $messageParams = $vars;
 
-        array_walk($messageParams, function (&$param) {
-            $param = '<info>' . $param . '</info>';
-        });
+        array_walk(
+            $messageParams, function (&$param) {
+                $param = '<info>' . $param . '</info>';
+            }
+        );
         $message = implode(PHP_EOL, (array)$message);
         $displayedMessage = vsprintf($message, $vars);
 
@@ -330,9 +348,9 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     }
 
     /**
-     * @param $template
-     * @param bool $ignoreMissing Silently ignore unresolved placeholders
-     * @param array $ignoreExceptions Raw placeholders that should not be ignored
+     * @param  $template
+     * @param  bool  $ignoreMissing    Silently ignore unresolved placeholders
+     * @param  array $ignoreExceptions Raw placeholders that should not be ignored
      * @return mixed
      * @throws DeckleException
      */
@@ -341,7 +359,9 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
         $manager = $this->getPlaceholdersService();
         $placeholders = $manager->extractPlaceholders($template);
 
-        /** @var PlaceholderInterface $placeholder */
+        /**
+ * @var PlaceholderInterface $placeholder 
+*/
         foreach ($placeholders as $placeholder) {
             $value = $this->resolvePlaceholderValue($placeholder, $ignoreMissing);
 
@@ -349,8 +369,10 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
                 continue;
             }
             if (Deckle::isVeryVerbose()) {
-                Deckle::print('Replacing "<info>%s</info>" placeholder with resolved value "<info>%s</info>"',
-                    [$placeholder->getRaw(), $value]);
+                Deckle::print(
+                    'Replacing "<info>%s</info>" placeholder with resolved value "<info>%s</info>"',
+                    [$placeholder->getRaw(), $value]
+                );
             }
             $template = $manager->substitutePlaceholder($template, $placeholder, $value);
         }
@@ -359,10 +381,10 @@ abstract class AbstractDeckleCommand extends Command implements ContainerAwareIn
     }
 
     /**
-     * @param string $templateFile
-     * @param string $target
-     * @param bool $ignoreMissing
-     * @param array $ignoreExceptions
+     * @param  string $templateFile
+     * @param  string $target
+     * @param  bool   $ignoreMissing
+     * @param  array  $ignoreExceptions
      * @throws DeckleException
      */
     protected function copyTemplateFile(

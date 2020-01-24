@@ -2,10 +2,7 @@
 
 namespace Adimeo\Deckle\Command\Deckle\Installer;
 
-use Adimeo\Deckle\Command\AbstractDeckleCommand;
-use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Deckle;
-use Adimeo\Deckle\Service\Shell\Script\Location\LocalPath;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -27,7 +24,7 @@ class LinuxInstaller extends AbstractUnixInstaller
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-       // dd($input->getOptions());
+        // dd($input->getOptions());
         Deckle::print('Installing deckle on <info>Linux</info>');
         Deckle::br();
 
@@ -36,9 +33,13 @@ class LinuxInstaller extends AbstractUnixInstaller
         $this->installDocker();
         $this->installMutagen();
         $this->installVm();
+
         if(!$this->vm()->ip()) {
-            Deckle::error('Deckle Machine seems not to be set up correctly. Please check its status and run "install" again');
+            Deckle::error(
+                'Deckle Machine seems not to be set up correctly. Please check its status and run "install" again'
+            );
         }
+
         $this->setUpHosts();
         $this->installDnsmasq();
         $this->setUpResolver();
@@ -63,7 +64,9 @@ class LinuxInstaller extends AbstractUnixInstaller
         $cwd = getcwd();
 
         chdir('/tmp');
-        $this->sh()->exec('wget https://github.com/mutagen-io/mutagen/releases/download/v0.10.2/mutagen_linux_amd64_v0.10.2.tar.gz');
+        $this->sh()->exec(
+            'wget https://github.com/mutagen-io/mutagen/releases/download/v0.10.2/mutagen_linux_amd64_v0.10.2.tar.gz'
+        );
         $this->sh()->exec('tar -xf mutagen_linux_amd64_v0.10.2.tar.gz');
         $this->sh()->exec('mv mutagen /usr/local/bin');
         $this->sh()->exec('mv mutagen-agents.tar.gz /usr/local/bin');
@@ -125,8 +128,10 @@ class LinuxInstaller extends AbstractUnixInstaller
         } else {
             Deckle::print('Generating <info>dnsmasq</info> configuration in <info>/etc/dnsmasq.conf</info>');
             exec('sudo chmod o+w /etc/dnsmasq.conf');
-            file_put_contents('/etc/dnsmasq.conf',
-                "\n" . 'address=/.deckle.local/' . $this->vm()->ip() . "\n");
+            file_put_contents(
+                '/etc/dnsmasq.conf',
+                "\n" . 'address=/.deckle.local/' . $this->vm()->ip() . "\n"
+            );
             exec('sudo chmod o-w /etc/dnsmasq.conf');
             Deckle::print('Restarting <info>dnsmasq</info>...');
             $this->sh()->exec('sudo service dnsmasq restart');
@@ -145,11 +150,15 @@ class LinuxInstaller extends AbstractUnixInstaller
         }
 
         if (!is_file('/etc/resolver/deckle.local')) {
-            Deckle::print('Generating resolver for <info>*.deckle.local</info> in <info>/etc/resolver/deckle.local</info>');
+            Deckle::print(
+                'Generating resolver for <info>*.deckle.local</info> in <info>/etc/resolver/deckle.local</info>'
+            );
             $this->sh()->exec('sudo bash -c "echo \'nameserver 127.0.0.1\' > /etc/resolver/deckle.local"');
         } else {
             if (trim(file_get_contents('/etc/resolver/deckle.local')) != 'nameserver 127.0.0.1') {
-                Deckle::print('Updating resolver for <info>*.deckle.local</info> in <info>/etc/resolver/deckle.local</info>');
+                Deckle::print(
+                    'Updating resolver for <info>*.deckle.local</info> in <info>/etc/resolver/deckle.local</info>'
+                );
                 $this->sh()->exec('sudo bash -c "echo \'nameserver 127.0.0.1\' > /etc/resolver/deckle.local"');
             }
         }

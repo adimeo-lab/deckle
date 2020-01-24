@@ -7,10 +7,6 @@ namespace Adimeo\Deckle\Command\Deckle;
 use Adimeo\Deckle\Command\AbstractDeckleCommand;
 use Adimeo\Deckle\Command\ProjectIndependantCommandInterface;
 use Adimeo\Deckle\Deckle;
-use Adimeo\Deckle\Exception\DeckleException;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -32,16 +28,16 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
     {
 
         switch(true) {
-            case is_dir('/Applications'):
-                $os = 'macos';
-                break;
+        case is_dir('/Applications'):
+            $os = 'macos';
+            break;
 
-            case is_dir('/boot'):
-                $os = 'linux';
-                break;
+        case is_dir('/boot'):
+            $os = 'linux';
+            break;
 
-            default:
-                return 1;
+        default:
+            return 1;
         }
 
         try {
@@ -55,17 +51,15 @@ class Install extends AbstractDeckleCommand implements ProjectIndependantCommand
 
 
         $command->setConfig($this->getConfig());
-        $arguments = [
-            'command' => $initCommand
-        ];
-
 
         $command->run($input, $output);
 
-        Deckle::success([
+        Deckle::success(
+            [
             'Deckle has been successfully installed on your computer.',
             'You can open now an ssh session by using "deckle vm:ssh" (passwd: deckle)',
-            'You should be able to test it by accessing http://portainer.deckle.local']);
+            'You should be able to test it by accessing http://portainer.deckle.local']
+        );
     }
 
 }

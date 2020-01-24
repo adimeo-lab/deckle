@@ -12,7 +12,9 @@ use Adimeo\Deckle\Service\Shell\Script\Location\LocalPath;
 class AbstractUnixInstaller extends AbstractDeckleCommand implements ProjectIndependantCommandInterface
 {
 
-    /** @var string */
+    /**
+     * @var string 
+     */
     protected $packageInstallCommand;
 
     protected $packages = [];
@@ -27,15 +29,20 @@ class AbstractUnixInstaller extends AbstractDeckleCommand implements ProjectInde
             if (Deckle::input(null)->getOption('reset')) {
                 $overwrite = true;
             } elseif (Deckle::input(null)->isInteractive()) {
-                $overwrite = Deckle::confirm('Deckle configuration folder "' . $target . '" already exists. Should it be overwritten?');
+                $overwrite = Deckle::confirm(sprintf(
+                    'Deckle configuration folder "%s" already exists. Should it be overwritten?',
+                    $target
+                ));
             }
 
             if (!$overwrite) {
-                Deckle::halt([
+                Deckle::halt(
+                    [
                     'Cannot install Deckle because of a previous installation not having been cleared.',
                     '',
                     'Please use "--reset" switch if you want to force reinstall.'
-                ]);
+                    ]
+                );
             }
         }
 
@@ -109,7 +116,12 @@ END;
         if (is_file($this->fs()->expandTilde('~/.ssh/id_rsa'))) {
             Deckle::runCommand('vm:ssh:copy-id');
         } else {
-            Deckle::note(['No RSA key detected.', 'You should create one and copy it to your', 'Deckle Machine using "deckle vm:ssh:copy-id"']);
+            Deckle::note(
+                [
+                    'No RSA key detected.',
+                    'You should create one and copy it to your', 'Deckle Machine using "deckle vm:ssh:copy-id"'
+                ]
+            );
         }
     }
 
@@ -120,7 +132,11 @@ END;
             Deckle::print('Vagrant not detected. Trying to install Vagrant.');
             $return = $this->sh()->exec('sudo apt -y install vagrant', null, false);
             if ($return->isErrored()) {
-                Deckle::warning('Vagrant installation seems to have failed. Please manually install Vagrant from "https://www.vagrantup.com/downloads.html" and run "deckle install" again.');
+                Deckle::warning(
+                    'Vagrant installation seems to have failed.
+                    Please manually install Vagrant from "https://www.vagrantup.com/downloads.html"
+                    and run "deckle install" again.'
+                );
                 return;
             }
 
@@ -134,12 +150,19 @@ END;
             mkdir($vagrantPath);
             Deckle::print('Cloning Deckle Vagrant VM configuration in <info>' . $vagrantPath . '</info>');
             // TODO make vagrant configuration file dynamic
-            $this->git()->clone('https://github.com/adimeo-lab/deckle-vagrant', new LocalPath(dirname($vagrantPath)), 'vagrant');
+            $this
+                ->git()
+                ->clone(
+                    'https://github.com/adimeo-lab/deckle-vagrant', new LocalPath(dirname($vagrantPath)),
+                    'vagrant'
+                );
             Deckle::print('Provisioning Deckle Vagrant VM <info>' . $vagrantPath . '</info>');
             $return = $this->sh()->exec('vagrant up', new LocalPath($vagrantPath), false);
         } else {
             if (!$this->git()->isUpToDate(new LocalPath('~/.deckle/vagrant'))) {
-                Deckle::print('Fetching the latest Deckle Vagrant VM configuration in <info>' . $vagrantPath . '</info>');
+                Deckle::print(
+                    'Fetching the latest Deckle Vagrant VM configuration in <info>' . $vagrantPath . '</info>'
+                );
                 $this->git()->pull(new LocalPath($vagrantPath));
                 Deckle::print('Provisioning Deckle Vagrant VM <info>' . $vagrantPath . '</info>');
                 $return = $this->sh()->exec('vagrant up --provision', new LocalPath($vagrantPath), false);
@@ -157,7 +180,10 @@ END;
         if (isset($return) && !$return->isErrored()) {
             Deckle::success('Deckle Vagrant VM is up and running.', [], false);
         } else {
-            Deckle::warning('It seems like something went wrong while provisioning or starting the VM. Please che Vagrant output and logs.');
+            Deckle::warning(
+                'It seems like something went wrong while provisioning or starting the VM.
+                Please che Vagrant output and logs.'
+            );
         }
     }
 
@@ -204,7 +230,7 @@ END;
             return;
         }
 
-        Deckle::print('Installing <info>mutagen</info> using <info>brew</info>');
+        Deckle::print('Installing <info>mutagen</info>');
         $this->sh()->exec($this->packageInstallCommand . ' mutagen-io/mutagen/mutagen');
     }
 
@@ -231,7 +257,9 @@ END;
             foreach ($conf as &$line) {
                 if (preg_match('/address=\/.deckle.local\/(.*)/', $line, $matches)) {
                     if (trim($line) != trim($newLline)) {
-                        Deckle::print('Updating <info>dnsmasq</info> configuration in <info>/usr/local/etc/dnsmasq.conf</info>');
+                        Deckle::print(
+                            'Updating <info>dnsmasq</info> configuration in <info>/usr/local/etc/dnsmasq.conf</info>'
+                        );
                         $line = $newLline;
                         file_put_contents('/usr/local/etc/dnsmasq.conf', implode("", $conf));
                         Deckle::print('Restarting <info>dnsmasq</info>...');
@@ -253,8 +281,10 @@ END;
 
         } else {
             Deckle::print('Generating <info>dnsmasq</info> configuration in <info>/usr/local/etc/dnsmasq.conf</info>');
-            file_put_contents('/usr/local/etc/dnsmasq.conf',
-                "\n" . 'address=/.deckle.local/' . $this->vm()->ip() . "\n");
+            file_put_contents(
+                '/usr/local/etc/dnsmasq.conf',
+                "\n" . 'address=/.deckle.local/' . $this->vm()->ip() . "\n"
+            );
             Deckle::print('Restarting <info>dnsmasq</info>...');
             $this->sh()->exec('sudo brew services restart dnsmasq');
             $this->sh()->exec('dscacheutil -flushcache');

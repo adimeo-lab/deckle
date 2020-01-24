@@ -61,3 +61,4 @@ deckle.local.yml
 ./deckle.yml
 
 var/log/
+.phpcs-cache

@@ -39,7 +39,9 @@ use Adimeo\Deckle\Command\Vm\Ip;
 use Adimeo\Deckle\Command\Vm\Ssh;
 use Adimeo\Deckle\Command\Vm\SshCopyId;
 use Adimeo\Deckle\Command\Vm\Start;
+use Adimeo\Deckle\Service\Config\ConfigService;
 use Adimeo\Deckle\Service\Config\DeckleConfig;
+use Composer\Autoload\ClassLoader;
 use ErrorException;
 use ObjectivePHP\DocuMentor\ReflectionFile;
 use ObjectivePHP\Events\EventsHandler;
@@ -95,8 +97,8 @@ class Deckle extends Application
         );
 
         self::$container = new ServicesFactory();
-        self::$events = new EventsHandler();
 
+        self::$events = new EventsHandler();
         self::$container->registerService(['id' => 'app', 'instance' => $this]);
 
         $this->registerNativeCommands();
@@ -210,18 +212,34 @@ class Deckle extends Application
         }
     }
 
+    /**
+     * @throws \ObjectivePHP\ServicesFactory\Exception\ServicesFactoryException
+     * @throws \ReflectionException
+     * @throws \Exception
+     */
     protected function registerLocalCommands()
     {
         $finder = new Finder();
         if (is_dir('./deckle/commands')) {
-            foreach ($finder->in('./deckle/commands')->name('*Command.php') as $commandFile) {
-                try {
-                    require $commandFile;
-                    $command = new ReflectionFile($commandFile);
-                    $this->add($this->container->get($command->getName()));
-                } catch (\Throwable $e) {
-                    Deckle::error('Unable to load local command file "%s"', $commandFile, false, $e);
-                }
+            
+            $files = $finder->in('./deckle/commands')->files();
+
+            /** @var ConfigService $configService */
+            $configService = self::$container->get(ConfigService::class);
+            $config = $configService->load('./deckle/deckle.yml');
+
+            if (!isset($config['project']['command']) && !is_string($config['project']['command'])) {
+                throw new \Exception(
+                    'A namespace should be set in the configuration of the template under project > command!'
+                );
+            }
+
+            $loader = require dirname(__DIR__) . '/vendor/autoload.php';
+            $loader->setPsr4($config['project']['command'], './deckle/commands');
+
+            foreach ($files as $file) {
+                $reflectionFile = new ReflectionFile($file);
+                $this->add(self::$container->get($reflectionFile->getName()));
             }
         }
     }
